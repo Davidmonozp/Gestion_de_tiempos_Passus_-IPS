@@ -1,0 +1,372 @@
+ @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Turret+Road:wght@200;300;400;500;700;800&display=swap');
+
+
+
+ .parent {
+     display: grid;
+     grid-template-columns: auto 350px 1fr;
+     grid-template-rows: auto;
+     min-height: 100vh;
+     gap: 8px;
+     flex: 1;
+     font-family: 'Montserrat', 'Turret Road', sans-serif;
+ }
+
+
+ .navbar {
+     grid-column: span 3 / span 3;
+ }
+
+ .sidebar {
+     grid-row: span 3 / span 3;
+     grid-row-start: 2;
+ }
+
+ .registro-tiempo {
+     /* grid-row: span 2 / span 2; */
+     grid-row-start: 2;
+     background: rgba(236, 236, 236, 0.342);
+     box-shadow: inset 2px 2px 1px rgba(251, 251, 254, 0.3), inset -2px -2px 1px rgba(251, 251, 254, 0.2);
+     border-radius: 1.5rem;
+     /* backdrop-filter: blur(100px); */
+     box-shadow: 0 0px 3px #00933f, 0 4px 10px rgba(0, 0, 0, 0.05);
+     border: solid 3px white;
+     height: fit-content;
+     padding: 15px;
+     text-align: center;
+     height: 100%;
+     margin-top: 17px;
+ }
+
+ .cards {
+     grid-row-start: 2;
+ }
+
+ .actividades {
+     grid-column: span 2 / span 2;
+     grid-column-start: 2;
+     grid-row-start: 3;
+ }
+
+ .grafica {
+     grid-column: span 2 / span 2;
+     grid-column-start: 2;
+     grid-row-start: 4;
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     /* dos columnas iguales dentro */
+     gap: 10px;
+     padding: 25px;
+ }
+
+ .grafica-1,
+ .grafica-2 {
+     width: 100%;
+     background: rgba(236, 236, 236, 0.342);
+     box-shadow: inset 2px 2px 1px rgba(251, 251, 254, 0.3), inset -2px -2px 1px rgba(251, 251, 254, 0.2);
+     border-radius: 1.5rem;
+     backdrop-filter: blur(100px);
+     box-shadow: 0 0px 3px #00933f, 0 4px 10px rgba(0, 0, 0, 0.05);
+     border: solid 3px white;
+     height: fit-content;
+     padding: 15px;
+ }
+
+ .footer {
+     grid-column: span 3 / span 3;
+     grid-row-start: 5;
+     background: goldenrod;
+ }
+
+ .cards {
+     display: grid;
+     grid-template-columns: repeat(3, 1fr);
+     gap: 10px;
+     align-items: stretch;
+     padding: 0 17px 0 10px;
+     height: 74%;
+     margin-top: 17px;
+ }
+
+ .tiempo-hoy,
+ .actv-pendientes,
+ .reporte-jornadas {
+     background-image: linear-gradient(15deg, #13547a 0%, #80d0c7 100%);
+     border-radius: 1.5rem;
+     backdrop-filter: blur(100px);
+     padding: 15px;
+     text-align: center;
+     color: white;
+     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2),
+         0 4px 10px rgba(0, 0, 0, 0.07);
+     transition: transform 0.3s ease, box-shadow 0.3s ease;
+     height: 100%;
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+ }
+
+ .tiempo-hoy:hover,
+ .actv-pendientes:hover,
+ .reporte-jornadas:hover {
+     transform: translateY(-5px);
+     box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
+ }
+
+ .tiempo-hoy p,
+ .actv-pendientes p,
+ .reporte-jornadas p .actv-pendientes p {
+     margin-top: 17px;
+ }
+
+ .actv-pendientes {
+     background-image: linear-gradient(to right, #f83600 0%, #f9d423 100%);
+ }
+
+ .reporte-jornadas {
+     background-image: linear-gradient(to top, #253b63 0%, #437fe9 1%, #0d2f6b 100%);
+ }
+
+ .entrada,
+ .salida {
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     width: 140px;
+     height: 37px;
+     font-size: 1rem;
+     border: none;
+     border-radius: 6px;
+     cursor: pointer;
+     margin: 0 auto;
+ }
+
+ .entrada {
+     background-color: #4CAF50;
+     color: white;
+ }
+
+ .salida {
+     background-color: #f44336;
+     color: white;
+ }
+
+
+ .tiempo-principal {
+     color: rgb(1, 88, 170);
+     font-size: 20px;
+ }
+
+ .titulo-cards {
+     color: rgb(255, 255, 255);
+     font-size: 16px;
+ }
+
+ .cronometro {
+     font-size: 45px;
+     color: red;
+ }
+
+
+
+
+
+
+
+
+
+
+ /* Contenedor principal */
+ .actividades {
+     display: grid;
+     grid-template-columns: repeat(2, 1fr);
+     /* background: #F0F0F3; */
+     padding: 25px;
+     border-radius: 18px;
+     margin-top: 30px;
+     gap: 20px;
+ }
+
+ /* Título */
+ .actividades h2 {
+     margin-bottom: 20px;
+     font-weight: 600;
+     color: #1f2937;
+ }
+
+ /* Tabla moderna */
+ .tabla-resumen {
+     width: 100%;
+     border-collapse: separate;
+     border-spacing: 0 12px;
+     /* Espacio entre filas */
+ }
+
+ /* Encabezado */
+ .tabla-resumen thead th {
+     text-align: left;
+     font-size: 0.85rem;
+     text-transform: uppercase;
+     letter-spacing: 0.5px;
+     color: #6b7280;
+     padding-bottom: 10px;
+ }
+
+ /* Filas */
+ .tabla-resumen tbody tr {
+     background: #f9fafb;
+     transition: all 0.2s ease;
+ }
+
+ .tabla-resumen tbody tr:hover {
+     background: #eef2ff;
+     transform: translateY(-2px);
+ }
+
+ /* Celdas */
+ .tabla-resumen td {
+     padding: 3px 18px;
+     font-size: 15px;
+     background: #ebebeb;
+     border-radius: 14px 0px 0px 14px;
+ }
+
+ /* Primera celda (Estado) */
+ .tabla-resumen td:first-child {
+     font-weight: 500;
+     color: #111827;
+ }
+
+ /* Segunda celda (Cantidad) estilo badge */
+ .tabla-resumen td:last-child {
+     text-align: right;
+     font-weight: 600;
+     color: white;
+     background: linear-gradient(45deg, #00933f, #0f572ead);
+     border-radius: 20px;
+     width: 80px;
+     text-align: center;
+ }
+
+ .tabla,
+ .tabla-2 {
+     background: rgba(236, 236, 236, 0.342);
+     box-shadow: inset 2px 2px 1px rgba(251, 251, 254, 0.3), inset -2px -2px 1px rgba(251, 251, 254, 0.2);
+     border-radius: 1.5rem;
+     /* backdrop-filter: blur(100px); */
+     box-shadow: 0 0px 3px #00933f, 0 4px 10px rgba(0, 0, 0, 0.05);
+     border: solid 3px white;
+     height: fit-content;
+     padding: 15px;
+ }
+
+ .tabla-scroll {
+     max-height: 287px;
+     overflow-y: auto;
+     padding-right: 5px;
+ }
+
+ /* Scroll moderno */
+ .tabla-scroll::-webkit-scrollbar {
+     width: 6px;
+ }
+
+ .tabla-scroll::-webkit-scrollbar-thumb {
+     background: #6366f1;
+     border-radius: 10px;
+ }
+
+ @media (max-width: 900px) {
+     .parent {
+         /* Definimos 2 columnas: la 1ra para la Sidebar (ancho fijo o auto) y la 2da para el contenido */
+         grid-template-columns: 78px 1fr;
+         grid-template-rows: auto;
+     }
+
+     .navbar {
+         /* Si el navbar debe ocupar todo el ancho superior, debe abarcar las 2 columnas */
+         grid-column: 1 / 3;
+     }
+
+     .sidebar {
+         grid-column: 1;
+         /* Asegúrate de que ocupe desde la fila del contenido hasta el final si es necesario */
+         grid-row: 2 / 10;
+     }
+
+     /* Todos estos elementos ahora viven en la columna 2 */
+     .registro-tiempo {
+         grid-column: 2;
+         grid-row: 2;
+         margin: 10px;
+     }
+
+     .cards {
+         /* grid-column: 2; */
+         grid-row: 3;
+         grid-template-columns: 1fr 1fr 1fr;
+         margin-top: 35px;
+     }
+
+     .actividades {
+         grid-column: 2;
+         grid-row: 4;
+     }
+
+     .grafica {
+         grid-column: 2;
+         grid-row: 5;
+     }
+
+     .footer {
+         grid-column: 2;
+         grid-row: 6;
+     }
+
+
+     /* Mantenemos tu lógica de que lo de adentro se apile */
+     .grafica,
+     .actividades {
+         grid-template-columns: 1fr;
+     }
+ }
+
+
+ @media (max-width: 500px) {
+
+     .parent {
+         /* Cambiamos el ancho de la sidebar a uno más pequeño si es necesario 
+           y nos aseguramos de que la columna 2 no empuje hacia afuera */
+         grid-template-columns: 60px minmax(0, 1fr);
+         column-gap: 10px;
+         /* Espacio pequeño entre sidebar y contenido */
+         width: 100%;
+         overflow-x: hidden;
+         /* Evita el scroll horizontal molesto */
+     }
+
+     .registro-tiempo {
+         grid-column: 2;
+         grid-row: 2;
+         /* Fila 1 del contenido (debajo del navbar si este es fila 1) */
+     }
+
+     .cards {
+         /* grid-column: 2; */
+         grid-row: 3;
+         grid-template-columns: 1fr;
+         margin-top: 35px;
+     }
+
+     .registro-tiempo,
+     .cards,
+     .actividades,
+     .grafica {
+         grid-column: 2;
+         width: 100%;
+         padding: 10px;
+         box-sizing: border-box;
+         margin: -5px;
+         margin-top: 10px;
+     }
+ }

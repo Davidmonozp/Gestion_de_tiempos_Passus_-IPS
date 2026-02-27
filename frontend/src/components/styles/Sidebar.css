@@ -1,0 +1,144 @@
+.sidebar-container {
+    height: 100%;
+    background: #0087cd;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    border-radius: 0px;
+    padding: 15px;
+}
+
+
+.sidebar-container.collapsed {
+    width: 80px;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    color: white;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.menu-item:hover {
+    background: #1f2937;
+}
+
+/* .icon {
+    font-size: 18px;
+} */
+
+.sidebar-footer {
+    font-size: 17px;
+    opacity: 0.7;
+}
+
+
+
+
+.logout-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.logout-icon {
+    display: flex;
+    align-items: center;
+}
+
+@media (min-width: 671px) and (max-width: 900px) {
+    .toggle-btn {
+        display: none;
+    }
+
+    .logo {
+        font-size: 10px;
+    }
+
+    .sidebar-menu li {
+        font-size: 25px;
+    }
+
+    .sidebar-menu li span {
+        display: none;
+    }
+
+    .sidebar-footer p {
+        display: none;
+    }
+    .sidebar-footer small {
+        font-size: 18px; /* Tamaño más grande para el texto */
+        display: flex;
+        flex-direction: column; /* Alinea el icono y el texto verticalmente */
+        align-items: center;
+        gap: 5px;
+        color: #ffffff; /* El color de tu tema */
+    }
+
+    .sidebar-footer small i {
+        font-size: 28px; /* El icono aún más grande que el texto */
+    }
+}
+
+
+@media (max-width: 500px) {
+    .toggle-btn {
+        display: none;
+    }
+
+    .logo {
+        font-size: 8px;
+    }
+
+    .sidebar-menu li span {
+        display: none;
+    }
+     .sidebar-footer p {
+        display: none;
+    }
+}

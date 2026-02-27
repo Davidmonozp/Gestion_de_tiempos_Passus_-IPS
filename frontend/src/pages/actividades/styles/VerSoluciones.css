@@ -1,0 +1,117 @@
+.soluciones-container {
+    margin-top: 30px;
+}
+
+.soluciones-main-title {
+    color: #06547d;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* TARJETA */
+.solucion-item-card {
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    margin-top: 25px;
+}
+
+.solucion-item-card:hover {
+    transform: translateY(-3px);
+}
+
+/* HEADER */
+.solucion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.solucion-number {
+    color: #00933f;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.solucion-fecha {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+/* BODY */
+.solucion-label-view {
+    font-size: 0.8rem;
+    color: #0087cd;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.solucion-text-display {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    color: #2d3748;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    border: 1px solid #edf2f7;
+}
+
+/* FOOTER */
+.solucion-footer {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #edf2f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-descarga-evidencia {
+    background: #e6fffa;
+    color: #234e52;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #b2f5ea;
+    transition: 0.2s;
+}
+
+.btn-descarga-evidencia:hover {
+    background: #00933f;
+    color: white;
+    border-color: #00933f;
+}
+
+.solucion-user-tag {
+    font-size: 0.85rem;
+    color: #4a5568;
+}
+
+/* ESTADOS */
+.soluciones-empty {
+    padding: 30px;
+    background: #f7fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 12px;
+    text-align: center;
+    color: #718096;
+}
+
+.soluciones-loading {
+    text-align: center;
+    padding: 20px;
+    color: #0087cd;
+    font-weight: 600;
+}
