@@ -6,6 +6,12 @@ import { EnviarSolucion } from "./EnviarSolucion";
 import "./styles/VerActividad.css";
 import Swal from "sweetalert2";
 import { VerSoluciones } from "./VerSoluciones";
+import RevisarActividad from "./RevisarActividad";
+import { tienePermiso } from "../../utils/Permisos";
+import { Navbar } from "../../components/Navbar";
+import { Version } from "../../components/Version";
+import { Sidebar } from "../../components/Sidebar";
+
 
 export const VerActividad = () => {
     const { id } = useParams();
@@ -17,6 +23,8 @@ export const VerActividad = () => {
     const [nuevosArchivos, setNuevosArchivos] = useState([]);
     const [form, setForm] = useState(null);
     const [nuevosArchivosSolucion, setNuevosArchivosSolucion] = useState([]);
+    const userJson = localStorage.getItem("user");
+    const currentUser = userJson ? JSON.parse(userJson) : null;
 
 
     const BASE_URL = api.defaults.baseURL.replace(/\/api$/, "");
@@ -180,217 +188,247 @@ export const VerActividad = () => {
     if (!form) return <p>No se encontró la actividad</p>;
 
 
+
+
     return (
-        <div className="actividad-detalle-container">
-            <div className="actividad-header">
-                <button className="btn-secondary" onClick={() => navigate("/actividades")}>← Volver</button>
-                <button
-                    className={`btn-toggle ${editMode ? "btn-cancelar" : "btn-editar"}`}
-                    onClick={() => setEditMode(!editMode)}
-                >
-                    {editMode ? "Cancelar" : "Editar Actividad"}
-                </button>
-            </div>
-
-            <form onSubmit={handleUpdate} className="actividad-form">
-
-                {/* --- SECCIÓN TITULO Y ESTADO --- */}
-                <div className="seccion">
-                    <div className="seccion-titulo">
-                        <div className="seccion-estado">
-                            <label >Nombre de la Actividad</label>
-                            {editMode ? (
-                                <input
-                                    className="input-titulo"
-                                    name="nombre"
-                                    value={form.nombre || ""}
-                                    onChange={handleChange}
-                                />
-                            ) : <h1 className="titulo-actividad">{form.nombre}</h1>}
-                        </div>
-
-                        <div className="estado-container">
-                            <label style={{ display: "block", color: "#7a7a7aff" }}>Estado Actual</label>
-                            {editMode ? (
-                                <select
-                                    name="estado"
-                                    value={form.estado || ""}
-                                    onChange={handleChange}
-                                    className="select-estado"
-                                >
-                                    {ESTADOS_ACTIVIDAD.map(est => (
-                                        <option key={est.value} value={est.value}>{est.label}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <span className={`badge-estado badge-${form.estado}`}>
-                                    {form.estado}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="actividad-grid">
-
-                    {/* --- COLUMNA IZQUIERDA: DETALLES --- */}
-                    <div className="column-izq">
-                        <h3>Detalles</h3>
-                        <label>Descripción:</label>
-                        {editMode ? (
-                            <textarea name="descripcion" value={form.descripcion || ""}
-                                onChange={handleChange} className="textarea-descripcion" />
-                        ) : <p style={{ background: "rgb(246 246 246)", padding: "10px" }}>{form.descripcion || "Sin descripción"}</p>}
-
-                        <label>Área:</label>
-                        {editMode ? (
-                            <select name="area_id" value={form.area_id} onChange={handleChange} style={{ width: "100%" }}>
-                                {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                            </select>
-                        ) : <p><strong>{form.area?.nombre}</strong></p>}
+        <>
+            <Navbar />
+            <div className="container-ver-actividad">
+                <Sidebar />
+                <div className="actividad-detalle-container">
+                    <div className="actividad-header">
+                        <button className="btn-volver" onClick={() => navigate("/actividades")}>← Volver</button>
+                        <button
+                            className={`btn-editar ${editMode ? "btn-cancelar" : "btn-editar"}`}
+                            onClick={() => setEditMode(!editMode)}
+                        >
+                            {editMode ? "Cancelar" : "Editar Actividad"}
+                        </button>
                     </div>
 
-                    {/* --- COLUMNA DERECHA: PERSONAS --- */}
-                    <div className="column-der">
-                        <h3>Participantes</h3>
-                        <label>Asignado por:</label>
+                    <form onSubmit={handleUpdate} className="actividad-form">
 
-                        <p> {form.asignado_por?.nombre} {form.asignado_por?.apellido}</p>
+                        {/* --- SECCIÓN TITULO Y ESTADO --- */}
+                        <div className="seccion">
+                            <div className="seccion-titulo">
+                                <div className="seccion-estado">
+                                    <label >Nombre de la Actividad</label>
+                                    {editMode ? (
+                                        <input
+                                            className="input-titulo"
+                                            name="nombre"
+                                            value={form.nombre || ""}
+                                            onChange={handleChange}
+                                        />
+                                    ) : <h1 className="titulo-actividad">{form.nombre}</h1>}
+                                </div>
 
-                        <label>Asignado a:</label>
-                        {editMode ? (
-                            <select
-                                name="asignado_a"
-                                value={form.asignado_a?.id || form.asignado_a || ""}
-                                onChange={handleChange}
-                                style={{ width: "100%" }}
-                            >
-                                {usuarios.map(u => (
-                                    <option key={u.id} value={u.id}>
-                                        {u.nombre_completo || u.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            <p>
-                                {form.asignado_a?.nombre} {form.asignado_a?.apellido}
-                                {form.asignado_a?.cargo && ` (${form.asignado_a.cargo})`}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <hr className="divider" />
-
-                {/* --- TIEMPOS Y CHECKS --- */}
-                {/* --- SECCIÓN DE TIEMPOS --- */}
-                <div className="actividad-tiempos">
-
-                    {/* Minutos Planeados (Solo Jefe suele editar esto) */}
-                    <div>
-                        <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Mins. Planeados:</label>
-                        {editMode ? (
-                            <input type="number" name="minutos_planeados" value={form.minutos_planeados} onChange={handleChange} style={{ width: "100%" }} />
-                        ) : <p>{form.minutos_planeados} min </p>}
-                    </div>
-                    <div>
-                        <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Fecha finalización:</label>
-                        {editMode ? (
-                            <input type="datetime-local" name="fecha_finalizacion" value={
-                                form.fecha_finalizacion
-                                    ? form.fecha_finalizacion.replace(" ", "T").slice(0, 16)
-                                    : ""
-                            } onChange={handleChange} style={{ width: "100%" }} />
-                        ) : <p>{form.fecha_finalizacion} </p>}
-                    </div>
-                </div>
-
-                <div className="checkbox-group">
-                    <label style={{ marginRight: "20px" }}>
-                        <input type="checkbox" name="requiere_aprobacion"
-                            checked={!!form.requiere_aprobacion} onChange={handleChange} disabled={!editMode} />
-                        Requiere Aprobación
-                    </label>
-                    <label>
-                        <input type="checkbox" name="notificar_asignacion" checked={!!form.notificar_asignacion} onChange={handleChange} disabled={!editMode} />
-                        Notificar Asignación
-                    </label>
-                </div>
-
-                {/* --- SECCIÓN DE ARCHIVOS --- */}
-                <div className="actividad-archivos">
-                    <h3>📂 Archivos Adjuntos</h3>
-                    <div className="archivos-grid">
-
-                        {/* MAPEAMOS DIRECTAMENTE LA COLUMNA 'archivos' */}
-                        {form.archivos && form.archivos.length > 0 ? (
-                            form.archivos.map((arc, i) => (
-                                <div key={i} className="archivo-item-guardado">
-                                    <a
-                                        href={`${BASE_URL}/storage/${arc.path}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        style={{ textDecoration: "none", color: "#333" }}
-                                    >
-                                        📄 {arc.nombre_original || "Archivo"}
-                                    </a>
-
-                                    {editMode && (
-                                        <button
-                                            type="button"
-                                            className="btn-quitar-archivo"
-                                            /* Usamos la función local para quitarlo del array antes de guardar */
-                                            onClick={() => eliminarArchivoDeColumna(i)}
-                                            title="Quitar de la lista"
+                                <div className="estado-container">
+                                    <label style={{ display: "block", color: "#7a7a7aff" }}>Estado Actual</label>
+                                    {editMode ? (
+                                        <select
+                                            name="estado"
+                                            value={form.estado || ""}
+                                            onChange={handleChange}
+                                            className="select-estado"
                                         >
-                                            ✕
-                                        </button>
+                                            {ESTADOS_ACTIVIDAD.map(est => (
+                                                <option key={est.value} value={est.value}>{est.label}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className={`badge-estado badge-${form.estado}`}>
+                                            {form.estado}
+                                        </span>
                                     )}
                                 </div>
-                            ))
-                        ) : (
-                            <p style={{ color: "#777", fontSize: "0.9em" }}>No hay archivos guardados.</p>
-                        )}
-                    </div>
-
-                    {/* SECCIÓN PARA SUBIR NUEVOS ARCHIVOS */}
-                    {editMode && (
-                        <div className="archivo-upload">
-                            <label>Añadir nuevos archivos:</label><br />
-                            <input type="file" multiple onChange={handleFilesChange} style={{ marginTop: "10px" }} />
-
-                            <div className="nuevos-archivos-lista">
-                                {nuevosArchivos.map((file, i) => (
-                                    <div key={i} className="archivo-fila-item">
-                                        <div className="archivo-fila-info">
-                                            <span style={{ color: "#2e7d32" }}>+ {file.name}</span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="btn-quitar-archivo"
-                                            onClick={() => eliminarArchivoDeFila(i)}
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                ))}
                             </div>
                         </div>
-                    )}
-                </div>
 
-                {editMode && (
-                    <button type="submit" style={{ marginTop: "30px", width: "100%", background: "#4CAF50", color: "white", padding: "12px", border: "none", borderRadius: "4px", fontSize: "1.1em", cursor: "pointer" }}>
-                        💾 Guardar Todos los Cambios
-                    </button>
-                )}
-            </form>
-            <VerSoluciones actividadId={form.id} />
-            <EnviarSolucion
-                actividad={form}
-                onSuccess={() => window.location.reload()}
-            />
-        </div>
+                        <div className="actividad-grid">
+
+                            {/* --- COLUMNA IZQUIERDA: DETALLES --- */}
+                            <div className="column-izq">
+                                <h3>Detalles</h3>
+                                <label>Descripción:</label>
+                                {editMode ? (
+                                    <textarea name="descripcion" value={form.descripcion || ""}
+                                        onChange={handleChange} className="textarea-descripcion" />
+                                ) : <p style={{ background: "rgb(246 246 246)", padding: "10px" }}>{form.descripcion || "Sin descripción"}</p>}
+
+                                <label>Área:</label>
+                                {editMode ? (
+                                    <select name="area_id" value={form.area_id} onChange={handleChange} style={{ width: "100%" }}>
+                                        {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                                    </select>
+                                ) : <p><strong>{form.area?.nombre}</strong></p>}
+                            </div>
+
+                            {/* --- COLUMNA DERECHA: PERSONAS --- */}
+                            <div className="column-der">
+                                <h3>Participantes</h3>
+                                <label>Asignado por:</label>
+
+                                <p> {form.asignado_por?.nombre} {form.asignado_por?.apellido}</p>
+
+                                <label>Asignado a:</label>
+                                {editMode ? (
+                                    <select
+                                        name="asignado_a"
+                                        value={form.asignado_a?.id || form.asignado_a || ""}
+                                        onChange={handleChange}
+                                        style={{ width: "100%" }}
+                                    >
+                                        {usuarios.map(u => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.nombre_completo || u.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <p>
+                                        {form.asignado_a?.nombre} {form.asignado_a?.apellido}
+                                        {form.asignado_a?.cargo && ` (${form.asignado_a.cargo})`}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <hr className="divider" />
+
+                        {/* --- SECCIÓN DE TIEMPOS --- */}
+                        <div className="actividad-tiempos">
+
+                            {/* Minutos Planeados (Solo Jefe suele editar esto) */}
+                            <div>
+                                <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Mins. Planeados:</label>
+                                {editMode ? (
+                                    <input type="number" name="minutos_planeados" value={form.minutos_planeados} onChange={handleChange} style={{ width: "100%" }} />
+                                ) : <p>{form.minutos_planeados} min </p>}
+                            </div>
+                            <div>
+                                <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Mins. Ejecutados:</label>
+                                {editMode ? (
+                                    <input type="number" name="minutos_planeados" value={form.minutos_ejecutados} onChange={handleChange} style={{ width: "100%" }} />
+                                ) : <p>{form.minutos_ejecutados} min </p>}
+                            </div>
+                            <div>
+                                <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Fecha finalización:</label>
+                                {editMode ? (
+                                    <input type="datetime-local" name="fecha_finalizacion" value={
+                                        form.fecha_finalizacion
+                                            ? form.fecha_finalizacion.replace(" ", "T").slice(0, 16)
+                                            : ""
+                                    } onChange={handleChange} style={{ width: "100%" }} />
+                                ) : <p>{form.fecha_finalizacion} </p>}
+                            </div>
+                        </div>
+
+                        <div className="checkbox-group">
+                            <label style={{ marginRight: "20px" }}>
+                                <input type="checkbox" name="requiere_aprobacion"
+                                    checked={!!form.requiere_aprobacion} onChange={handleChange} disabled={!editMode} />
+                                Requiere Aprobación
+                            </label>
+                            <label>
+                                <input type="checkbox" name="notificar_asignacion" checked={!!form.notificar_asignacion} onChange={handleChange} disabled={!editMode} />
+                                Notificar Asignación
+                            </label>
+                        </div>
+
+                        {/* --- SECCIÓN DE ARCHIVOS --- */}
+                        <div className="actividad-archivos">
+                            <h3>📂 Archivos Adjuntos</h3>
+                            <div className="archivos-grid">
+
+                                {/* MAPEAMOS DIRECTAMENTE LA COLUMNA 'archivos' */}
+                                {form.archivos && form.archivos.length > 0 ? (
+                                    form.archivos.map((arc, i) => (
+                                        <div key={i} className="archivo-item-guardado">
+                                            <a
+                                                href={`${BASE_URL}/storage/${arc.path}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                style={{ textDecoration: "none", color: "#333" }}
+                                            >
+                                                📄 {arc.nombre_original || "Archivo"}
+                                            </a>
+
+                                            {editMode && (
+                                                <button
+                                                    type="button"
+                                                    className="btn-quitar-archivo"
+                                                    /* Usamos la función local para quitarlo del array antes de guardar */
+                                                    onClick={() => eliminarArchivoDeColumna(i)}
+                                                    title="Quitar de la lista"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p style={{ color: "#777", fontSize: "0.9em" }}>No hay archivos guardados.</p>
+                                )}
+                            </div>
+
+                            {/* SECCIÓN PARA SUBIR NUEVOS ARCHIVOS */}
+                            {editMode && (
+                                <div className="archivo-upload">
+                                    <label>Añadir nuevos archivos:</label><br />
+                                    <input type="file" multiple onChange={handleFilesChange} style={{ marginTop: "10px" }} />
+
+                                    <div className="nuevos-archivos-lista">
+                                        {nuevosArchivos.map((file, i) => (
+                                            <div key={i} className="archivo-fila-item">
+                                                <div className="archivo-fila-info">
+                                                    <span style={{ color: "#2e7d32" }}>+ {file.name}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn-quitar-archivo"
+                                                    onClick={() => eliminarArchivoDeFila(i)}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {editMode && (
+                            <button type="submit" style={{ marginTop: "30px", width: "100%", background: "#4CAF50", color: "white", padding: "12px", border: "none", borderRadius: "4px", fontSize: "1.1em", cursor: "pointer" }}>
+                                💾 Guardar Todos los Cambios
+                            </button>
+                        )}
+                    </form>
+
+
+
+
+
+
+                    {/* --- LÓGICA DE REVISIÓN DEL JEFE --- */}
+                    {tienePermiso(['JefeInmediato', 'Administrador']) && form.estado === 'Espera_aprobacion' && (
+                        <RevisarActividad
+                            actividad={form}
+                            onUpdate={cargarDetalles}
+                        />
+                    )}
+
+                    <VerSoluciones actividadId={form.id} />
+
+                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} actividad={form} BASE_URL={BASE_URL} />
+                    <EnviarSolucion
+                        actividad={form}
+                        onSuccess={() => window.location.reload()}
+                    />
+                </div>
+            </div>
+            <Version />
+        </>
     );
 };
 

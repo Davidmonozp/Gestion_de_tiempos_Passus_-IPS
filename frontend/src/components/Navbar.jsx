@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./styles/Navbar.css";
+import { Notificationes } from "./Notificaciones";
 
 
 export const Navbar = () => {
@@ -22,7 +23,7 @@ export const Navbar = () => {
             <div className="navbar-container">
 
                 <Link to="/vista-principal" className="logo" onClick={closeMenu}>
-                    <img className="img-navbar" src="./logoPassusTransp.png" alt="" />
+                    <img className="img-navbar" src="/logoPassusTransp.png" alt="" />
                 </Link>
 
                 <button
@@ -49,6 +50,9 @@ export const Navbar = () => {
                     <Link to="/vista-principal" onClick={closeMenu}>
                         Configuración
                     </Link>
+
+                    <Notificationes />
+
 
                     <div className="user-dropdown">
                         <button

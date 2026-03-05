@@ -1,3 +1,22 @@
+h1 {
+    color: #06547d;
+    margin-top: 20px;
+}
+
+.container-actividades {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: repeat(1, 1fr);
+    gap: 18px;
+    margin-top: 8px;
+}
+
+
+.sidebar {
+    grid-row: span 3 / span 3;
+    grid-row-start: 2;
+}
+
 .cards-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -194,12 +213,192 @@
         inset -0.4em -0.4em 0.5em rgba(255, 255, 255, 0.1);
 }
 
+.tabla-container {
+    width: 90%;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+
+    overflow-x: auto;
+    display: block;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabla-actividades {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    min-width: 800px;
+}
+
+.tabla-actividades th,
+.tabla-actividades td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #d8d8d8;
+    text-align: center;
+}
+
+.tabla-actividades th {
+    color: #06547d;
+}
+
+.tabla-actividades thead {
+    background-color: #f0f0f0;
+}
+
+.tabla-actividades tbody tr {
+    transition: background-color 0.2s ease;
+    /* Suaviza el cambio de color */
+}
+
+.tabla-actividades tbody tr:hover {
+    background-color: #d8f2ff;
+    cursor: pointer;
+}
+
+/* --- EFECTO EN LA CELDA INDIVIDUAL --- */
+.tabla-actividades tbody td {
+    transition: all 0.2s ease;
+}
+
+.tabla-actividades tbody td:hover {
+    background-color: #085a9123;
+    color: #036e99;
+    font-weight: bold;
+    transform: scale(1.02);
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.tabla-actividades td a {
+    color: #0087cd;
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Color al pasar el cursor (Rojo) */
+.tabla-actividades td a:hover {
+    color: #06547d;
+    transform: scale(1.1);
+}
+
+.btn-ver-tabla {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.btn-crear:hover {
+    background: #0087cd;
+    color: rgb(255, 255, 255);
+}
+
+.view-actions {
+    display: flex;
+    gap: 0px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+    width: 24%;
+}
+
+/* Botones con tu estilo de degradado rojo si prefieres */
+.view-actions button {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.view-actions button.active {
+    background-color: #0087cd;
+    color: white;
+    border-color: #0087cd;
+}
+
+
+
+/* --- PAGINACIÓN --- */
+/* Contenedor con aislamiento */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 50px 0 20px 0;
+    padding: 10px;
+    clear: both;
+}
+
+/* La barra de navegación estilo "Pill" */
+.modern-pagination {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    padding: 8px 15px;
+    border-radius: 50px;
+    /* Forma de píldora */
+    box-shadow: 0 4px 15px rgb(0 0 0 / 22%);
+    border: 1px solid #eee;
+    gap: 15px;
+}
+
+/* Botones circulares */
+.btn-nav {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: solid 1px #00933f;
+    background: #ffffff;
+    color: #06547d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+
+.btn-nav:hover:not(:disabled) {
+    background: #00933f;
+    /* Tu color rojo */
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 49, 49, 0.3);
+}
+
+.btn-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Texto de página */
+.page-info {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #06547d;
+    letter-spacing: 0.5px;
+    padding: 0 10px;
+}
+
+.current-num {
+    color: #00933f;
+    font-size: 1.1rem;
+}
+
+
+
+
 /* Responsive actividades */
 
 @media (min-width: 200px) and (max-width: 500px) {
     .cards-container {
         grid-template-columns: repeat(1, 1fr);
     }
+   
 }
 
 @media (min-width: 501px) and (max-width: 800px) {
@@ -217,6 +416,42 @@
         padding: 40px 15px;
     }
 
+}
+
+@media (max-width: 800px) {
+    .container-actividades {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        grid-column: 1;
+        width: 60px;
+    }
+
+    .tabla-container {
+        grid-column: 2;
+        display: block;
+        overflow-x: auto;
+
+        max-width: calc(100vw - 90px);
+
+        min-width: 0;
+        border: 1px solid #00934015;
+        padding: 5px;
+    }
+
+    .tabla-actividades {
+        min-width: 800px !important;
+        width: 100%;
+    }
+
+    .view-actions {
+        width: auto;
+    }
 }
 
 @media (min-width: 1001px) and (max-width: 1200px) {
@@ -238,6 +473,7 @@
         padding: 40px 15px;
     }
 }
+
 @media (min-width: 1501px) and (max-width: 2500px) {
     .cards-container {
         display: grid;

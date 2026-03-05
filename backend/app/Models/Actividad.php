@@ -64,4 +64,12 @@ class Actividad extends Model
         'archivos' => 'array',
         'archivos_solucion' => 'array',
     ];
+    // public function actividad()
+    // {
+    //     return $this->belongsTo(Actividad::class, 'actividad_id');
+    // }
+    public function revisiones()
+    {
+        return $this->hasMany(RevisionActividad::class)->with('usuario')->latest();
+    }
 }

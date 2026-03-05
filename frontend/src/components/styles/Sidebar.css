@@ -63,10 +63,8 @@
 .sidebar-footer {
     font-size: 17px;
     opacity: 0.7;
+    margin-bottom: 17px;
 }
-
-
-
 
 .logout-btn {
     background: none;
@@ -111,17 +109,22 @@
     .sidebar-footer p {
         display: none;
     }
+
     .sidebar-footer small {
-        font-size: 18px; /* Tamaño más grande para el texto */
+        font-size: 18px;
+        /* Tamaño más grande para el texto */
         display: flex;
-        flex-direction: column; /* Alinea el icono y el texto verticalmente */
+        flex-direction: column;
+        /* Alinea el icono y el texto verticalmente */
         align-items: center;
         gap: 5px;
-        color: #ffffff; /* El color de tu tema */
+        color: #ffffff;
+        /* El color de tu tema */
     }
 
     .sidebar-footer small i {
-        font-size: 28px; /* El icono aún más grande que el texto */
+        font-size: 28px;
+        /* El icono aún más grande que el texto */
     }
 }
 
@@ -138,7 +141,8 @@
     .sidebar-menu li span {
         display: none;
     }
-     .sidebar-footer p {
+
+    .sidebar-footer p {
         display: none;
     }
 }

@@ -1,10 +1,24 @@
 .soluciones-container {
-    margin-top: 30px;
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    margin-top: 20px;
+}
+
+.soluciones-container hr {
+    border: none;
+    height: 1px;
+    /* background-image: linear-gradient(to right, transparent, #00933f 50%, transparent); */
+    background: rgb(219, 219, 219);
+    margin: 20px 0 37px 0;
+    opacity: 0.8;
 }
 
 .soluciones-main-title {
     color: #06547d;
-    font-size: 1.2rem;
+    font-size: 33px;
     font-weight: 700;
     margin-bottom: 20px;
     display: flex;
@@ -20,6 +34,8 @@
     box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
     border: 1px solid #00934015;
     margin-top: 25px;
+    border-left-color: #0087cd;
+    border-left-width: 3px;
 }
 
 .solucion-item-card:hover {
@@ -49,9 +65,10 @@
 /* BODY */
 .solucion-label-view {
     font-size: 0.8rem;
-    color: #0087cd;
+    /* color: #0087cd; */
+    color: rgb(122, 122, 122);
     font-weight: 600;
-    text-transform: uppercase;
+    /* text-transform: uppercase; */
     margin-bottom: 6px;
     display: block;
 }
@@ -115,3 +132,314 @@
     color: #0087cd;
     font-weight: 600;
 }
+
+
+
+.solucion-tiempos-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed #eee;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.planeado {
+    background: #f0f0f0;
+    color: #444;
+}
+
+.ejecutado {
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.extra {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+}
+
+
+/* Contenedor principal de tiempos */
+.solucion-tiempos-container {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    /* Un gris muy ligero para diferenciar la zona */
+    border-radius: 8px;
+}
+
+/* Grid para poner Planeado y Ejecutado lado a lado */
+.solucion-grid-tiempos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+/* Grupo de etiqueta + campo */
+.solucion-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+/* El "Input" de lectura */
+.solucion-input-readonly {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #333;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.solucion-input-readonly .icon {
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+.solucion-input-readonly .value {
+    font-weight: 400;
+}
+
+/* Colores temáticos suaves */
+.ejecutado-style {
+    border-left: 4px solid #2196f3;
+    /* Azul para ejecución */
+}
+
+.extra-style {
+    border-left: 4px solid #ff9800;
+    /* Naranja para extras */
+    background: #fff8f0;
+}
+
+.solucion-grid-tiempos {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 10px;
+}
+
+/* Estilo para la adición individual (Naranja suave) */
+.extra-individual-style {
+    background-color: #fffaf0;
+    border-left: 4px solid #ffa000;
+    color: #e65100;
+}
+
+/* Estilo para el total acumulado (Morado o Gris oscuro profesional) */
+.extra-total-style {
+    background-color: #f8f5ff;
+    border-left: 4px solid #673ab7;
+    color: #311b92;
+    font-weight: bold;
+}
+
+/* Estilos para observaciones del jefe */
+
+.historial-contenedor {
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    margin-top: 25px;
+}
+
+.badge-conteo {
+    background: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+
+/* Tarjeta individual de revisión */
+.revision-item {
+    background: #fcfcfc;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+    border-left-width: 3px;
+    /* Acentuamos el color lateral */
+    transition: transform 0.2s ease;
+    margin-top: 19px;
+}
+
+.revision-item:hover {
+    transform: translateX(5px);
+}
+
+.revision-item.aprobado {
+    border-left-color: #28a745;
+}
+
+.revision-item.devuelto {
+    border-left-color: #dc3545;
+}
+
+/* Cabecera de la revisión */
+.revision-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.nombre-jefe {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+/* Badges con tonos pastel para que no chillen visualmente */
+.badge-estado {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.bg-success-soft {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.bg-danger-soft {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+/* Cuerpo y texto */
+.observacion-texto {
+    color: #444;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    margin: 0;
+    background: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px dashed #ddd;
+}
+
+/* Adjuntos dentro de la revisión */
+.revision-adjuntos {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.adjuntos-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 8px;
+}
+
+.btn-adjunto-rev {
+    display: inline-block;
+    background: #f8f9fa;
+    border: 1px solid #dcdde1;
+    color: #2f3640;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-adjunto-rev:hover {
+    background: #e1f0ff;
+    border-color: #4a90e2;
+    color: #4a90e2;
+}
+
+/* Pie de la tarjeta */
+.revision-footer {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.fecha-rev {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+.revision-body .row {
+    margin-left: -5px;
+    margin-right: -5px;
+}
+
+.revision-body .col-md-3 {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.revision-body strong {
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.text-muted {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Botones de aplzamiento */
+
+.aplazar-container-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-aplazar-opt {
+    padding: 10px 18px;
+    border: solid 1px #ffffff;
+    background: #f1f5f9;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px 0px #00933f;
+}
+
+.btn-aplazar-opt:hover {
+    background: #06a06d;
+    color: white;
+}
+
+.btn-cancelar-opt {
+    padding: 10px 18px;
+    border: solid 1px #ffffff;
+    background: #f1f5f9;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px 0px #ee0505;
+}
+
+.btn-cancelar-opt:hover {
+    background: rgb(255, 71, 71);
+    color: white;
+}
+
+
+/* Fin de botones de aplazamiento */

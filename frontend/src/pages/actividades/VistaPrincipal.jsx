@@ -19,6 +19,8 @@ import {
 } from "recharts";
 import { Sidebar } from '../../components/Sidebar';
 import { Navbar } from '../../components/Navbar';
+import { Version } from '../../components/Version';
+// import { Version } from '../../components/Version';
 
 
 export const VistaPrincipal = () => {
@@ -339,12 +341,9 @@ export const VistaPrincipal = () => {
                     </div>
                 </div>
                 <div className="footer">
-                    <h2>footer</h2>
+                    <Version />
                 </div>
             </div>
-
-
-
         </>
     );
 };

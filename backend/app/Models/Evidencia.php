@@ -11,7 +11,9 @@ class Evidencia extends Model
         'user_id',
         'archivo_path',
         'nombre_original',
-        'descripcion'
+        'descripcion',
+        'minutos_ejecutados',
+        'minutos_extra'
     ];
 
     public function actividad()

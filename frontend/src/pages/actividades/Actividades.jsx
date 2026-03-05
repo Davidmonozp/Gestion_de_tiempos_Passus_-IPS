@@ -1,157 +1,193 @@
 import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
-import { Logout } from "../../components/Logout";
 import "./styles/Actividades.css";
 import { Navbar } from "../../components/Navbar";
+import { Sidebar } from "../../components/Sidebar";
+import { Version } from "../../components/Version";
 
 export const Actividades = () => {
     const [actividades, setActividades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
+    const [vistaTabular, setVistaTabular] = useState(true);
 
-    // Extraemos la URL base de Axios y quitamos el "/api" 
-    // Esto convierte "http://127.0.0.1:8000/api" en "http://127.0.0.1:8000"
+    const TEXTOS_ESTADOS = {
+        "Por_corregir": "Por corregir",
+        "Espera_aprobacion": "Espera de aprobación",
+        "En_progreso": "En progreso"
+    };
+
     const BASE_URL = api.defaults.baseURL.replace(/\/api$/, "");
 
     useEffect(() => {
         const fetchActividades = async () => {
             try {
                 setLoading(true);
-
-                const response = await api.get(
-                    `/ver-actividades?page=${currentPage}`
-                );
-
+                const response = await api.get(`/ver-actividades?page=${currentPage}`);
                 setActividades(response.data.data);
                 setLastPage(response.data.last_page);
-
             } catch (error) {
-                console.error(
-                    "Error al obtener actividades:",
-                    error.response?.data || error.message
-                );
+                console.error("Error al obtener actividades:", error.response?.data || error.message);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchActividades();
     }, [currentPage]);
-
 
     if (loading) return <p>Cargando actividades...</p>;
 
     return (
         <>
-        <Navbar />
-            <div>
-                <Link to="/crear-actividades">
-                    <button>Crear</button>
-                </Link>
-                
-                <h1>Lista de Actividades</h1>
+            <Navbar />
 
-                {actividades.length === 0 ? (
-                    <p>No hay actividades</p>
-                ) : (
-                    <div className="cards-container">
-                        {actividades.map((actividad) => {
+            <div className="container-actividades">
+                    <Sidebar />
+                <div className="container-principal">
 
-                            const archivos = Array.isArray(actividad.archivos)
-                                ? actividad.archivos
-                                : [];
+                    <h1>Lista de Actividades</h1>
 
-                            return (
-                                <div className="card" key={actividad.id}>
-                                    <div className="inner-card">
-
-                                        <div className="info">
-                                            <span className={`estado-badge estado-${actividad.estado}`}>
-                                                {actividad.estado}
-                                            </span>
-                                            <h3>{actividad.nombre}</h3>
-
-                                            <p><strong>Estado:</strong> {actividad.estado}</p>
-
-                                            <p><strong>Área:</strong> {actividad.area?.nombre}</p>
-
-                                            <p>
-                                                <strong>Asignado Por:</strong>{" "}
-                                                {actividad.asignado_por?.nombre}{" "}
-                                                {actividad.asignado_por?.apellido}
-                                            </p>
-
-                                            <p>
-                                                <strong>Asignado A:</strong>{" "}
-                                                {actividad.asignado_a?.nombre}{" "}
-                                                {actividad.asignado_a?.apellido}
-                                            </p>
-
-                                            <p><strong>Fecha límite:</strong> {actividad.fecha_finalizacion || "-"}</p>
-
-                                            <p>
-                                                <strong>Minutos:</strong>{" "}
-                                                {actividad.minutos_ejecutados} / {actividad.minutos_planeados}
-                                            </p>
-
-                                            <p>
-                                                <strong>Requiere aprobación:</strong>{" "}
-                                                {actividad.requiere_aprobacion ? "Sí" : "No"}
-                                            </p>
-
-                                            <div className="archivos">
-                                                <strong>Archivos:</strong>
-                                                {archivos.length === 0
-                                                    ? " Sin archivos"
-                                                    : archivos.map((archivo, index) => (
-                                                        <div key={index}>
-                                                            <a
-                                                                href={`${BASE_URL}/storage/${archivo.path}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                            >
-                                                                {archivo.original_name}
-                                                            </a>
-                                                        </div>
-                                                    ))}
-                                            </div>
-                                        </div>
-
-                                        <Link to={`/ver-actividad/${actividad.id}`} className="button-link">
-                                            <div className="button">
-                                                Ver Detalle
-                                            </div>
-                                        </Link>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    {/* Botones para alternar vista */}
+                    <div className="view-actions">
+                        <button onClick={() => setVistaTabular(true)} className={vistaTabular ? 'active' : ''}>
+                            <i className="fa-solid fa-list"></i>
+                        </button>
+                        <button onClick={() => setVistaTabular(false)} className={!vistaTabular ? 'active' : ''}>
+                            <i className="fa-solid fa-table"></i>
+                        </button>
+                        <Link to="/crear-actividades">
+                            <button className="btn-crear">Crear actividad</button>
+                        </Link>
                     </div>
-                )}
 
-                {/* Paginación */}
-                <div className="paginacion">
-                    <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                    >
-                        Anterior
-                    </button>
+                    {actividades.length === 0 ? (
+                        <p>No hay actividades</p>
+                    ) : (
+                        <>
+                            {!vistaTabular ? (
+                                /* ==========================================
+                                   VISTA DE TARJETAS (TU DISEÑO ORIGINAL)
+                                ============================================ */
+                                <div className="cards-container">
+                                    {actividades.map((actividad) => {
+                                        const archivos = Array.isArray(actividad.archivos) ? actividad.archivos : [];
+                                        return (
+                                            <div className="card" key={actividad.id}>
+                                                <div className="inner-card">
+                                                    <div className="info">
+                                                        <span className={`estado-badge estado-${actividad.estado}`}>
+                                                            {actividad.estado}
+                                                        </span>
+                                                        <h3>{actividad.nombre}</h3>
+                                                        <p><strong>Estado:</strong> {actividad.estado}</p>
+                                                        <p><strong>Área:</strong> {actividad.area?.nombre}</p>
+                                                        <p>
+                                                            <strong>Asignado Por:</strong>{" "}
+                                                            {actividad.asignado_por?.nombre} {actividad.asignado_por?.apellido}
+                                                        </p>
+                                                        <p>
+                                                            <strong>Asignado A:</strong>{" "}
+                                                            {actividad.asignado_a?.nombre} {actividad.asignado_a?.apellido}
+                                                        </p>
+                                                        <p><strong>Fecha límite:</strong> {actividad.fecha_finalizacion || "-"}</p>
+                                                        <p>
+                                                            <strong>Minutos:</strong> {actividad.minutos_ejecutados} / {actividad.minutos_planeados}
+                                                        </p>
+                                                        <p>
+                                                            <strong>Requiere aprobación:</strong> {actividad.requiere_aprobacion ? "Sí" : "No"}
+                                                        </p>
+                                                        <div className="archivos">
+                                                            <strong>Archivos:</strong>
+                                                            {archivos.length === 0 ? " Sin archivos" : archivos.map((archivo, index) => (
+                                                                <div key={index}>
+                                                                    <a href={`${BASE_URL}/storage/${archivo.path}`} target="_blank" rel="noopener noreferrer">
+                                                                        {archivo.original_name}
+                                                                    </a>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <Link to={`/ver-actividad/${actividad.id}`} className="button-link">
+                                                        <div className="button">Ver Detalle</div>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                /* ==========================================
+                                   VISTA DE TABLA (OPCIÓN ADICIONAL)
+                                ============================================ */
+                                <div className="tabla-container">
+                                    <table className="tabla-actividades">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nombre</th>
+                                                <th>Estado</th>
+                                                <th>Asignado A</th>
+                                                <th>Minutos planeados</th>
+                                                <th>Minutos ejecutados</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {actividades.map((act) => (
+                                                <tr key={act.id}>
+                                                    <td>{act.id}</td>
+                                                    <td>{act.nombre}</td>
+                                                    <td>
+                                                        <span className={`estado-badge estado-${act.estado}`}>
+                                                            {TEXTOS_ESTADOS[act.estado] || act.estado}
+                                                        </span>
+                                                    </td>
+                                                    <td>{act.asignado_a?.nombre}</td>
+                                                    <td>{act.minutos_planeados}</td>
+                                                    <td>{act.minutos_ejecutados}</td>
+                                                    <td>
+                                                        <Link to={`/ver-actividad/${act.id}`}><i className="fa-solid fa-eye"></i></Link>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {/* Paginación */}
+                    {/* Paginación Moderna */}
+                    <div className="pagination-wrapper">
+                        <nav className="modern-pagination">
+                            <button
+                                className="btn-nav"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                title="Anterior"
+                            >
+                                <span className="icon-arrow">←</span>
+                            </button>
 
-                    <span>
-                        Página {currentPage} de {lastPage}
-                    </span>
+                            <div className="page-info">
+                                PÁGINA <span className="current-num">{currentPage}</span> DE <span>{lastPage}</span>
+                            </div>
 
-                    <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, lastPage))}
-                        disabled={currentPage === lastPage}
-                    >
-                        Siguiente
-                    </button>
+                            <button
+                                className="btn-nav"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, lastPage))}
+                                disabled={currentPage === lastPage}
+                                title="Siguiente"
+                            >
+                                <span className="icon-arrow">→</span>
+                            </button>
+                        </nav>
+                    </div>
                 </div>
             </div>
+            <Version />
         </>
     );
 };

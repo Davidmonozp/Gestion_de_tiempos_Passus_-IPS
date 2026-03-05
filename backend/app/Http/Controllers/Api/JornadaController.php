@@ -56,7 +56,9 @@ class JornadaController extends Controller
         $horaSalida = Carbon::now();
         $horaEntrada = Carbon::parse($jornada->hora_entrada);
         $minutosBrutos = (int) $horaEntrada->diffInMinutes($horaSalida);
-        $descuentoAlmuerzo = ($minutosBrutos > 60) ? 60 : 0;
+
+        // NUEVA LÓGICA: Si trabajó más de 360 min (6 horas), descuenta 60.
+        $descuentoAlmuerzo = ($minutosBrutos > 360) ? 60 : 0;
         $minutosNetos = $minutosBrutos - $descuentoAlmuerzo;
 
         $jornada->update([
@@ -150,43 +152,45 @@ class JornadaController extends Controller
     }
     // JornadaController.php
 
-public function previsualizarSalida()
-{
-    $user = Auth::user();
-    $hoy = Carbon::today()->toDateString();
-    
-    $jornada = Jornada::where('user_id', $user->id)->where('estado', 'activo')->first();
+    public function previsualizarSalida()
+    {
+        $user = Auth::user();
+        $hoy = Carbon::today()->toDateString();
 
-    if (!$jornada) {
-        return response()->json(['success' => false, 'message' => 'No hay jornada activa'], 404);
+        $jornada = Jornada::where('user_id', $user->id)->where('estado', 'activo')->first();
+
+        if (!$jornada) {
+            return response()->json(['success' => false, 'message' => 'No hay jornada activa'], 404);
+        }
+
+        $horaSalidaSimulada = Carbon::now();
+        $horaEntrada = Carbon::parse($jornada->hora_entrada);
+
+        // Cálculos
+        $minutosBrutos = (int) $horaEntrada->diffInMinutes($horaSalidaSimulada);
+
+        // NUEVA LÓGICA: Aplicar el mismo umbral de 6 horas
+        $descuentoAlmuerzo = ($minutosBrutos > 360) ? 60 : 0;
+        $minutosNetos = $minutosBrutos - $descuentoAlmuerzo;
+
+        // Suma de actividades
+        $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
+            ->whereDate('updated_at', $hoy)
+            ->get()
+            ->sum(function ($act) {
+                return $act->minutos_ejecutados + ($act->minutos_extra ?? 0);
+            });
+
+        $diferencia = $minutosNetos - $minutosActividades;
+
+        return response()->json([
+            'success' => true,
+            'calculo' => [
+                'tiempo_laboral' => $this->formatearMinutos($minutosNetos),
+                'tiempo_actividades' => $this->formatearMinutos($minutosActividades),
+                'diferencia_minutos' => $diferencia,
+                'almuerzo' => $descuentoAlmuerzo
+            ]
+        ]);
     }
-
-    $horaSalidaSimulada = Carbon::now();
-    $horaEntrada = Carbon::parse($jornada->hora_entrada);
-    
-    // Cálculos
-    $minutosBrutos = (int) $horaEntrada->diffInMinutes($horaSalidaSimulada);
-    $descuentoAlmuerzo = ($minutosBrutos > 60) ? 60 : 0;
-    $minutosNetos = $minutosBrutos - $descuentoAlmuerzo;
-
-    // Suma de actividades
-    $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
-        ->whereDate('updated_at', $hoy)
-        ->get()
-        ->sum(function ($act) {
-            return $act->minutos_ejecutados + ($act->minutos_extra ?? 0);
-        });
-
-    $diferencia = $minutosNetos - $minutosActividades;
-
-    return response()->json([
-        'success' => true,
-        'calculo' => [
-            'tiempo_laboral' => $this->formatearMinutos($minutosNetos),
-            'tiempo_actividades' => $this->formatearMinutos($minutosActividades),
-            'diferencia_minutos' => $diferencia,
-            'almuerzo' => $descuentoAlmuerzo
-        ]
-    ]);
-}
 }

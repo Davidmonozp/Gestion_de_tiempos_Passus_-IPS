@@ -1,0 +1,87 @@
+.notif-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.notif-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    font-size: 1.2rem;
+    color: #0087cd;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -7px;
+    right: -10px;
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 8px;
+    font-weight: bold;
+}
+
+.notif-dropdown {
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 280px;
+    z-index: 1000;
+    background: #ffffff;
+    padding: 3px;
+    border-radius: 16px;
+    box-shadow: 0 0px 7px #0087cd, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+}
+
+.notif-header {
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    color: #06547d;
+}
+
+.notif-item {
+    padding: 10px;
+    border-bottom: 1px solid #f9f9f9;
+    cursor: default;
+    border-radius: 10px;
+}
+
+.notif-item:hover {
+    background: #0087cd;
+    cursor: pointer;
+    /* Importante para que el usuario sepa que es clickeable */
+}
+
+/* 2. Cuando el padre (.notif-item) está en hover, cambiamos el color de los hijos */
+.notif-item:hover p {
+    color: #ffffff !important;
+}
+
+.notif-item:hover small {
+    color: #cacaca !important;
+}
+
+.notif-item p {
+    margin: 0;
+    font-size: 13px;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+.notif-item small {
+    color: #888;
+    font-size: 11px;
+    transition: color 0.2s ease;
+}
+
+.notif-empty {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+}

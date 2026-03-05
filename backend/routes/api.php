@@ -4,8 +4,14 @@ use App\Http\Controllers\Api\ActividadController;
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\EvidenciaController;
 use App\Http\Controllers\Api\JornadaController;
+use App\Http\Controllers\Api\SolicitudActividadController;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Mail\NuevaActividadAsignada;
+use App\Models\Actividad;
+use App\Models\SolicitudActividad;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
 
@@ -35,8 +41,8 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/actividades/{actividad}/evidencias', [EvidenciaController::class, 'store']);
     Route::get('/ver-actividad/{id}', [ActividadController::class, 'show']);
     Route::put('/actualizar-actividad/{id}', [ActividadController::class, 'update']);
-    Route::post('/enviar-solucion/{id}', [ActividadController::class, 'enviarSolucion']);
-    Route::get('/actividad/{id}/soluciones', [ActividadController::class, 'listarSoluciones']);
+    Route::post('/enviar-solucion/{id}', [EvidenciaController::class, 'enviarSolucion']);
+    Route::get('/actividad/{id}/soluciones', [EvidenciaController::class, 'listarSoluciones']);
 
     // Rutas para registro de jornada laboral
     Route::get('/jornada/estado', [JornadaController::class, 'estadoActual']);
@@ -48,4 +54,39 @@ Route::middleware('auth:api')->group(function () {
     // Rutas publicas
     Route::get('/ver-areas', [AreaController::class, 'verAreas']);
     Route::get('/ver-roles', [App\Http\Controllers\Api\RolController::class, 'verRoles']);
+
+    // Rutas para revisar actividad por el jefe
+    Route::post('/actividades/{id}/revisar', [EvidenciaController::class, 'revisarActividad']);
+
+    // rutas de solicitudes de aplazamiento o cancelacion 
+    Route::post('/solicitudes', [SolicitudActividadController::class, 'store']);
+    Route::put('/solicitudes/{id}/decidir', [SolicitudActividadController::class, 'decidir']);
+    Route::get('/actividades/{id}/historial', function ($id) {
+        return SolicitudActividad::where('actividad_id', $id)->with('solicitante')->get();
+    });
+
+    // Rutas para notificaciones 
+    Route::get('/notificaciones', function () {
+        // Retorna las notificaciones sin leer del usuario del token JWT
+        return Auth::user()->unreadNotifications;
+    });
+
+    Route::post('/notificaciones/marcar-leida', function () {
+        // Marca todas como leídas
+        Auth::user()->unreadNotifications->markAsRead();
+        return response()->json(['success' => true]);
+    });
+
+    Route::post('/notificaciones/{id}/leer', function ($id) {
+        /** @var User */
+        $user = Auth::user();
+
+        if ($user) {
+            $notification = $user->notifications()->findOrFail($id);
+            $notification->markAsRead();
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['error' => 'No autorizado'], 401);
+    });
 });

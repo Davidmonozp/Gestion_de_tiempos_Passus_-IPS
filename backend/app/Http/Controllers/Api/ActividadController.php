@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NuevaActividadAsignada;
 use App\Models\Actividad;
 use App\Models\Evidencia;
 use App\Models\Observacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 
 class ActividadController extends Controller
 {
@@ -135,27 +137,35 @@ class ActividadController extends Controller
                 'minutos_planeados' => 'nullable|integer|min:0',
                 'minutos_ejecutados' => 'nullable|integer|min:0',
                 'fecha_finalizacion' => 'nullable|date',
-                'archivos.*' => 'nullable|file|max:10240', // múltiples archivos
+                'estado' => 'required|string|in:Programada,Ejecución,Finalizada,Por_corregir,Aplazada,Cancelada, Espera_aprobacion',
+                'archivos.*' => 'nullable|file|max:10240',
                 'requiere_aprobacion' => 'nullable|boolean',
                 'notificar_asignacion' => 'nullable|boolean',
             ]);
 
             // 🔒 Validación por rol
-            if ($user->hasRole('JefeInmediato')) {
-                $areasIds = $user->areas()->pluck('areas.id');
-                if (!$areasIds->contains($request->area_id)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No puede crear actividades en esta área'
-                    ], 403);
-                }
-            }
+            if (!$user->hasRole('Administrador')) {
 
-            if ($user->hasRole('Usuario') && $request->asignado_a != $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No puede asignar actividades a otros usuarios'
-                ], 403);
+                // Restricción para JefeInmediato
+                if ($user->hasRole('JefeInmediato')) {
+                    $areasIds = $user->areas()->pluck('areas.id');
+                    if (!$areasIds->contains($request->area_id)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Como Jefe Inmediato, no puede crear actividades fuera de sus áreas asignadas.'
+                        ], 403);
+                    }
+                }
+
+                // Restricción para Usuario común
+                if ($user->hasRole('Usuario')) {
+                    if ($request->asignado_a != $user->id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'No tiene permisos para asignar actividades a otros usuarios.'
+                        ], 403);
+                    }
+                }
             }
 
             // Manejo de archivos múltiples en disk "public"
@@ -180,12 +190,21 @@ class ActividadController extends Controller
                 'asignado_a' => $request->asignado_a,
                 'minutos_planeados' => $request->minutos_planeados ?? 0,
                 'minutos_ejecutados' => $request->minutos_ejecutados ?? 0,
-                'estado' => 'Programada',
+                'estado' => $request->estado,
                 'fecha_finalizacion' => $request->fecha_finalizacion,
                 'requiere_aprobacion' => $request->requiere_aprobacion ?? false,
                 'notificar_asignacion' => $request->notificar_asignacion ?? true,
                 'archivos' => $archivosArray,
             ]);
+
+            if ($actividad->notificar_asignacion) {
+                // Obtenemos el usuario asignado (ya cargado en las relaciones)
+                $usuarioAsignado = $actividad->asignadoA;
+
+                if ($usuarioAsignado && $usuarioAsignado->email) {
+                    Mail::to($usuarioAsignado->email)->send(new NuevaActividadAsignada($actividad));
+                }
+            }
 
 
             // Cargar relaciones
@@ -228,7 +247,9 @@ class ActividadController extends Controller
                 'asignadoA',
                 'asignadoPor',
                 'aprobadaPor',
-                'evidencias'
+                'evidencias',
+                'revisiones.usuario',
+                'evidencias.user'
             ])->findOrFail($id);
 
             // 👑 Administrador puede ver todo
@@ -262,145 +283,144 @@ class ActividadController extends Controller
             ], 500);
         }
     }
-//    public function show($id)
-//     {
-//         try {
-//             // Buscar actividad por ID con relaciones
-//             $actividad = Actividad::with([
-//                 'area',
-//                 'asignadoA',
-//                 'asignadoPor',
-//                 'aprobadaPor',
-//                 'evidencias'
-//             ])->findOrFail($id);
+    //    public function show($id)
+    //     {
+    //         try {
+    //             // Buscar actividad por ID con relaciones
+    //             $actividad = Actividad::with([
+    //                 'area',
+    //                 'asignadoA',
+    //                 'asignadoPor',
+    //                 'aprobadaPor',
+    //                 'evidencias'
+    //             ])->findOrFail($id);
 
-//             return response()->json([
-//                 'success' => true,
-//                 'data' => $actividad
-//             ], 200);
-//         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Actividad no encontrada'
-//             ], 404);
-//         } catch (\Exception $e) {
-//             return response()->json([
-//                 'success' => false,
-//                 'message' => 'Error al obtener la actividad',
-//                 'error' => $e->getMessage()
-//             ], 500);
-//         }
-//     }
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'data' => $actividad
+    //             ], 200);
+    //         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Actividad no encontrada'
+    //             ], 404);
+    //         } catch (\Exception $e) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Error al obtener la actividad',
+    //                 'error' => $e->getMessage()
+    //             ], 500);
+    //         }
+    //     }
 
-   public function update(Request $request, $id)
-{
-    try {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        $actividad = Actividad::findOrFail($id);
+    public function update(Request $request, $id)
+    {
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            $actividad = Actividad::findOrFail($id);
 
-        $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'area_id' => 'sometimes|required|exists:areas,id',
-            'asignado_a' => 'sometimes|required|exists:users,id',
-            'minutos_planeados' => 'nullable|integer|min:0',
-            'fecha_finalizacion' => 'nullable|date',
-            'requiere_aprobacion' => 'nullable|boolean',
-            'notificar_asignacion' => 'nullable|boolean',
-            'estado' => 'sometimes|string',
-            
-            // Archivos nuevos
-            'archivos_solucion.*' => 'nullable|file|max:10240',
-            'solucion' => 'nullable|string',
+            $request->validate([
+                'nombre' => 'sometimes|required|string|max:255',
+                'descripcion' => 'nullable|string',
+                'area_id' => 'sometimes|required|exists:areas,id',
+                'asignado_a' => 'sometimes|required|exists:users,id',
+                'minutos_planeados' => 'nullable|integer|min:0',
+                'fecha_finalizacion' => 'nullable|date',
+                'requiere_aprobacion' => 'nullable|boolean',
+                'notificar_asignacion' => 'nullable|boolean',
+                'estado' => 'sometimes|string',
 
-            // Observaciones
-            'observacion' => 'nullable|string',
-            'archivo_observacion' => 'nullable|file|max:10240'
-        ]);
+                // Archivos nuevos
+                'archivos_solucion.*' => 'nullable|file|max:10240',
+                'solucion' => 'nullable|string',
 
-        // 🔒 VALIDACIÓN POR ROL (Tu lógica original)
-        if ($user->hasRole('JefeInmediato') && $request->has('area_id')) {
-            $areasIds = $user->areas()->pluck('areas.id');
-            if (!$areasIds->contains($request->area_id)) {
-                return response()->json(['success' => false, 'message' => 'No tiene permiso'], 403);
-            }
-        }
-
-        // 🛠 PREPARAR DATA
-        $data = $request->except(['archivos_solucion', 'solucion', 'observacion', 'archivo_observacion', 'archivos']);
-
-        // ✨ REGLAS DE ESTADO (Tu lógica original)
-        if ($actividad->estado === 'Por_corregir') {
-            $data['minutos_ejecutados'] = $actividad->minutos_ejecutados;
-        }
-
-        if (!$request->has('estado') || $request->estado == $actividad->estado) {
-            if ($request->filled('solucion') || $request->hasFile('archivos_solucion')) {
-                $reqApp = $request->has('requiere_aprobacion') 
-                    ? filter_var($request->requiere_aprobacion, FILTER_VALIDATE_BOOLEAN) 
-                    : $actividad->requiere_aprobacion;
-                $data['estado'] = $reqApp ? 'Espera_aprobacion' : 'Finalizada';
-            }
-        } else {
-            $data['estado'] = $request->estado;
-        }
-
-        // 📂 LÓGICA DE ARCHIVOS EN COLUMNA JSON
-        // 1. Obtenemos lo que el Front mandó como "archivos que se quedan"
-        // Si el front mandó una lista filtrada, la tomamos; si no, la actual.
-        $archivosFinales = $request->has('archivos') 
-            ? json_decode($request->archivos, true) 
-            : (is_array($actividad->archivos) ? $actividad->archivos : []);
-
-        // 2. Si vienen archivos nuevos físicamente, los subimos y agregamos al array
-        if ($request->hasFile('archivos_solucion')) {
-            foreach ($request->file('archivos_solucion') as $archivo) {
-                $path = $archivo->store('soluciones', 'public');
-                $archivosFinales[] = [
-                    'path' => $path,
-                    'nombre_original' => $archivo->getClientOriginalName(),
-                    'user_id' => $user->id,
-                    'fecha' => now()->toDateTimeString()
-                ];
-            }
-        }
-        
-        // Guardamos el array resultante en la columna 'archivos'
-        $data['archivos'] = $archivosFinales;
-
-        // 🚀 ACTUALIZAR ACTIVIDAD
-        $actividad->update($data);
-
-        // 📝 GUARDAR OBSERVACIÓN (Tu lógica original)
-        if ($request->filled('observacion')) {
-            $pathObs = null;
-            $nomObs = null;
-            if ($request->hasFile('archivo_observacion')) {
-                $file = $request->file('archivo_observacion');
-                $pathObs = $file->store('observaciones', 'public');
-                $nomObs = $file->getClientOriginalName();
-            }
-
-            Observacion::create([
-                'actividad_id' => $actividad->id,
-                'user_id' => $user->id,
-                'comentario' => $request->observacion,
-                'archivo_path' => $pathObs,
-                'nombre_original' => $nomObs
+                // Observaciones
+                'observacion' => 'nullable|string',
+                'archivo_observacion' => 'nullable|file|max:10240'
             ]);
+
+            // 🔒 VALIDACIÓN POR ROL (Tu lógica original)
+            if ($user->hasRole('JefeInmediato') && $request->has('area_id')) {
+                $areasIds = $user->areas()->pluck('areas.id');
+                if (!$areasIds->contains($request->area_id)) {
+                    return response()->json(['success' => false, 'message' => 'No tiene permiso'], 403);
+                }
+            }
+
+            // 🛠 PREPARAR DATA
+            $data = $request->except(['archivos_solucion', 'solucion', 'observacion', 'archivo_observacion', 'archivos']);
+
+            // ✨ REGLAS DE ESTADO (Tu lógica original)
+            if ($actividad->estado === 'Por_corregir') {
+                $data['minutos_ejecutados'] = $actividad->minutos_ejecutados;
+            }
+
+            if (!$request->has('estado') || $request->estado == $actividad->estado) {
+                if ($request->filled('solucion') || $request->hasFile('archivos_solucion')) {
+                    $reqApp = $request->has('requiere_aprobacion')
+                        ? filter_var($request->requiere_aprobacion, FILTER_VALIDATE_BOOLEAN)
+                        : $actividad->requiere_aprobacion;
+                    $data['estado'] = $reqApp ? 'Espera_aprobacion' : 'Finalizada';
+                }
+            } else {
+                $data['estado'] = $request->estado;
+            }
+
+            // 📂 LÓGICA DE ARCHIVOS EN COLUMNA JSON
+            // 1. Obtenemos lo que el Front mandó como "archivos que se quedan"
+            // Si el front mandó una lista filtrada, la tomamos; si no, la actual.
+            $archivosFinales = $request->has('archivos')
+                ? json_decode($request->archivos, true)
+                : (is_array($actividad->archivos) ? $actividad->archivos : []);
+
+            // 2. Si vienen archivos nuevos físicamente, los subimos y agregamos al array
+            if ($request->hasFile('archivos_solucion')) {
+                foreach ($request->file('archivos_solucion') as $archivo) {
+                    $path = $archivo->store('soluciones', 'public');
+                    $archivosFinales[] = [
+                        'path' => $path,
+                        'nombre_original' => $archivo->getClientOriginalName(),
+                        'user_id' => $user->id,
+                        'fecha' => now()->toDateTimeString()
+                    ];
+                }
+            }
+
+            // Guardamos el array resultante en la columna 'archivos'
+            $data['archivos'] = $archivosFinales;
+
+            // 🚀 ACTUALIZAR ACTIVIDAD
+            $actividad->update($data);
+
+            // 📝 GUARDAR OBSERVACIÓN (Tu lógica original)
+            if ($request->filled('observacion')) {
+                $pathObs = null;
+                $nomObs = null;
+                if ($request->hasFile('archivo_observacion')) {
+                    $file = $request->file('archivo_observacion');
+                    $pathObs = $file->store('observaciones', 'public');
+                    $nomObs = $file->getClientOriginalName();
+                }
+
+                Observacion::create([
+                    'actividad_id' => $actividad->id,
+                    'user_id' => $user->id,
+                    'comentario' => $request->observacion,
+                    'archivo_path' => $pathObs,
+                    'nombre_original' => $nomObs
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Actualizado con éxito',
+                'data' => $actividad->load(['area', 'asignadoA', 'asignadoPor', 'evidencias', 'observaciones'])
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Actualizado con éxito',
-            'data' => $actividad->load(['area', 'asignadoA', 'asignadoPor', 'evidencias', 'observaciones'])
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
-}
     // public function update(Request $request, $id)
     // {
     //     try {
@@ -532,97 +552,6 @@ class ActividadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar la actividad',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-   public function enviarSolucion(Request $request, $id)
-{
-    try {
-        $user = Auth::user();
-
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
-        }
-
-        $actividad = Actividad::findOrFail($id);
-
-        // 1. Validación: Usamos 'numeric' para los minutos por si llegan como string desde el FormData
-        $request->validate([
-            'solucion'           => 'required|string',
-            'minutos_ejecutados' => 'required|numeric|min:1',
-            'minutos_extra'      => 'nullable|numeric|min:0',
-            'estado'             => 'required|string|in:Ejecución,Finalizada,Por_corregir,Espera_aprobacion,Aplazada,Cancelada',
-            'archivos_solucion.*' => 'nullable|file|max:10240' // 10MB
-        ]);
-
-        // Verificar permisos
-        if ($actividad->asignado_a !== $user->id) {
-            return response()->json(['success' => false, 'message' => 'No tiene permiso'], 403);
-        }
-
-        // 2. Lógica de estado: La aprobación manda sobre el estado seleccionado
-        $estadoFinal = $actividad->requiere_aprobacion ? 'Espera_aprobacion' : $request->estado;
-
-        // 3. Actualizar actividad
-        $actividad->update([
-            'estado'             => $estadoFinal,
-            'minutos_ejecutados' => $request->minutos_ejecutados,
-            'minutos_extra'      => $request->minutos_extra ?? 0
-        ]);
-
-        // 4. Guardar en tabla EVIDENCIAS y columna ARCHIVO_PATH
-        if ($request->hasFile('archivos_solucion')) {
-            foreach ($request->file('archivos_solucion') as $archivo) {
-                // Verificamos que el archivo sea válido antes de procesar
-                if ($archivo->isValid()) {
-                    $path = $archivo->store('evidencias', 'public');
-
-                    Evidencia::create([
-                        'actividad_id'    => $actividad->id,
-                        'user_id'         => $user->id,
-                        'descripcion'     => $request->solucion,
-                        'archivo_path'    => $path, // Se guarda en la columna especificada
-                        'nombre_original' => $archivo->getClientOriginalName()
-                    ]);
-                }
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Solución enviada correctamente y evidencias registradas'
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al procesar: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-    public function listarSoluciones($id)
-    {
-        try {
-
-            $actividad = Actividad::findOrFail($id);
-
-            $soluciones = Evidencia::with('user')
-                ->where('actividad_id', $actividad->id)
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            return response()->json([
-                'success' => true,
-                'soluciones' => $soluciones
-            ]);
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error interno',
                 'error' => $e->getMessage()
             ], 500);
         }
