@@ -13,6 +13,7 @@ import { Version } from "../../components/Version";
 import { Sidebar } from "../../components/Sidebar";
 
 
+
 export const VerActividad = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -105,18 +106,26 @@ export const VerActividad = () => {
         Object.keys(form).forEach(key => {
             const value = form[key];
 
-            // Manejo de objetos (Area y Asignado)
+            // 1. Manejo de objetos (Extraer solo el ID para las llaves foráneas)
             if (key === 'area' && value?.id) {
                 data.append('area_id', value.id);
             } else if (key === 'asignado_a' && value?.id) {
                 data.append('asignado_a', value.id);
+            } else if (key === 'aprobada_por' && value?.id) { // <-- AGREGAR ESTO
+                data.append('aprobada_por', value.id);
             }
-            // Manejo de Booleanos para Laravel
+
+            // 2. Manejo de Booleanos para Laravel
             else if (['requiere_aprobacion', 'notificar_asignacion'].includes(key)) {
                 data.append(key, value ? "1" : "0");
             }
-            // EXCLUIR los campos que se manejan aparte o que no deben enviarse
-            else if (!['archivos', 'archivos_solucion', 'area', 'asignado_por', 'asignado_a_user', 'evidencias', 'observaciones'].includes(key)) {
+
+            // 3. EXCLUIR los campos que se manejan aparte o que no deben enviarse
+            else if (![
+                'archivos', 'archivos_solucion', 'area', 'asignado_por',
+                'asignado_a_user', 'evidencias', 'observaciones',
+                'aprobada_por'
+            ].includes(key)) {
                 if (value !== null && value !== undefined) {
                     data.append(key, value);
                 }
@@ -193,6 +202,7 @@ export const VerActividad = () => {
     return (
         <>
             <Navbar />
+
             <div className="container-ver-actividad">
                 <Sidebar />
                 <div className="actividad-detalle-container">
@@ -405,11 +415,6 @@ export const VerActividad = () => {
                         )}
                     </form>
 
-
-
-
-
-
                     {/* --- LÓGICA DE REVISIÓN DEL JEFE --- */}
                     {tienePermiso(['JefeInmediato', 'Administrador']) && form.estado === 'Espera_aprobacion' && (
                         <RevisarActividad
@@ -420,10 +425,10 @@ export const VerActividad = () => {
 
                     <VerSoluciones actividadId={form.id} />
 
-                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} actividad={form} BASE_URL={BASE_URL} />
+                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} solicitudes={form.solicitudes} actividad={form} BASE_URL={BASE_URL} onUpdate={cargarDetalles} />
                     <EnviarSolucion
                         actividad={form}
-                        onSuccess={() => window.location.reload()}
+                        onSuccess={cargarDetalles}
                     />
                 </div>
             </div>

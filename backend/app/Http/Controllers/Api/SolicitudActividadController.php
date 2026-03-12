@@ -80,6 +80,7 @@ class SolicitudActividadController extends Controller
 
     public function decidir(Request $request, $id)
     {
+        
         $solicitud = SolicitudActividad::findOrFail($id);
         $actividad = $solicitud->actividad;
 
@@ -88,7 +89,7 @@ class SolicitudActividadController extends Controller
 
             if ($solicitud->tipo === 'aplazamiento') {
                 $actividad->fecha_finalizacion = $solicitud->nueva_fecha_propuesta;
-                $actividad->estado = 'Programada'; // Se retoma el flujo
+                $actividad->estado = 'Aplazada'; 
             } else {
                 $actividad->estado = 'Cancelada';
             }

@@ -93,39 +93,94 @@ class UsuarioController extends Controller
         }
     }
 
-  public function index()
-{
-    try {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
+    public function index()
+    {
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
 
-        // Iniciamos la consulta base
-        $query = User::select(
-            'id',
-            DB::raw("CONCAT_WS(' ', nombre, segundo_nombre, apellido, segundo_apellido) as nombre_completo")
-        );
+            // Iniciamos la consulta base
+            $query = User::select(
+                'id',
+                DB::raw("CONCAT_WS(' ', nombre, segundo_nombre, apellido, segundo_apellido) as nombre_completo")
+            );
 
-        // 🔒 FILTRO POR ROL:
-        // Si es "Usuario", solo se puede ver a él mismo.
-        if ($user->hasRole('Usuario')) {
-            $query->where('id', $user->id);
-        } 
-        // Si es "JefeInmediato", podrías filtrar por los de su área aquí también
-        // else if ($user->hasRole('JefeInmediato')) { ... }
+            // 1. Usamos with() para cargar relaciones (rol y área) y evitar el problema N+1
+            // 2. Seleccionamos todos los campos relevantes
+            $query = User::with('areas');
 
-        $usuarios = $query->orderBy('nombre')->get();
+            // Filtro de seguridad (opcional, según tu lógica anterior)
+            if ($user->hasRole('Usuario')) {
+                $query->where('id', $user->id);
+            }
 
-        return response()->json([
-            'success' => true,
-            'data' => $usuarios
-        ], 200);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al obtener usuarios',
-            'error' => $e->getMessage()
-        ], 500);
+            $usuarios = $query->get()->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'nombre' => $u->nombre,
+                    'apellido' => $u->apellido,
+                    'nombre_completo' => "{$u->nombre} {$u->apellido}",
+                    'email' => $u->email,
+                    'nombre_usuario' => $u->nombre_usuario,
+                    // Mapeamos las áreas para traer su nombre y el tipo (Jefe/Integrante) del pivote
+                    'areas' => $u->areas->map(function ($area) {
+                        return [
+                            'id' => $area->id,
+                            'nombre' => $area->nombre,
+                            'tipo' => $area->pivot->tipo // Acceso al campo 'tipo' de la tabla pivote
+                        ];
+                    }),
+                    'rol' => $u->getRoleNames()->first() ?? 'Sin Rol',
+                    'estado' => $u->estado ?? 'Activo',
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $usuarios
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener usuarios',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
+
+    //     public function index()
+    //     {
+    //         try {
+    //             /** @var \App\Models\User $user */
+    //             $user = Auth::user();
+
+    //             // Iniciamos la consulta base
+    //             $query = User::select(
+    //                 'id',
+    //                 DB::raw("CONCAT_WS(' ', nombre, segundo_nombre, apellido, segundo_apellido) as nombre_completo")
+    //             );
+
+    //             // 🔒 FILTRO POR ROL:
+    //             // Si es "Usuario", solo se puede ver a él mismo.
+    //             if ($user->hasRole('Usuario')) {
+    //                 $query->where('id', $user->id);
+    //             }
+    //             // Si es "JefeInmediato", podrías filtrar por los de su área aquí también
+    //             // else if ($user->hasRole('JefeInmediato')) { ... }
+
+    //             $usuarios = $query->orderBy('nombre')->get();
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'data' => $usuarios
+    //             ], 200);
+    //         } catch (\Exception $e) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Error al obtener usuarios',
+    //                 'error' => $e->getMessage()
+    //             ], 500);
+    //         }
+    //     }
+    // }
 }

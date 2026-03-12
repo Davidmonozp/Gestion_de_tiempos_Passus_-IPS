@@ -24,7 +24,7 @@ class SolicitudActividad extends Model
     protected $casts = [
         'archivos_solicitud' => 'array',
         'fecha_original' => 'date',
-        'nueva_fecha_propuesta' => 'date',
+        'nueva_fecha_propuesta' => 'datetime',
     ];
 
     // Relación con la actividad

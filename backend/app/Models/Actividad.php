@@ -72,4 +72,8 @@ class Actividad extends Model
     {
         return $this->hasMany(RevisionActividad::class)->with('usuario')->latest();
     }
+    public function solicitudes()
+    {
+        return $this->hasMany(SolicitudActividad::class, 'actividad_id');
+    }
 }

@@ -1,0 +1,108 @@
+/* --- Estilos para Aprobaraplzamiento.css --- */
+
+.solicitud-especial-card {
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    margin-top: 25px;
+    border-left-color: #e68d1a;
+    border-left-width: 3px;
+}
+
+.motivo-solicitante {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    color: #2d3748;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    border: 1px solid #edf2f7;
+}
+
+.cambio-fechas-container {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    color: #2d3748;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    border: 1px solid #edf2f7;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.flecha-separador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #f57f17;
+}
+
+.input-observacion-jefe {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+.solucion-acciones {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-aprobar-sol,
+.btn-rechazar-sol {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    color: white;
+}
+
+.btn-aprobar-sol {
+    background-color: #2e7d32;
+}
+
+.btn-aprobar-sol:hover {
+    background-color: #1b5e20;
+}
+
+.btn-rechazar-sol {
+    background-color: #d32f2f;
+}
+
+.btn-rechazar-sol:hover {
+    background-color: #b71c1c;
+}
+
+.badge-solicitud.pendiente {
+    background-color: #fff3e0;
+    color: #ef6c00;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.espera-mensaje {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    color: #2d3748;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    font-style: italic;
+    border: 1px solid #edf2f7;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}

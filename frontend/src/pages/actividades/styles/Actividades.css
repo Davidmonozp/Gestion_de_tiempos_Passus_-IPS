@@ -2,7 +2,9 @@ h1 {
     color: #06547d;
     margin-top: 20px;
 }
-
+/* .container-principal {
+    height: 100vh;
+} */
 .container-actividades {
     display: grid;
     grid-template-columns: auto 1fr;

@@ -1,10 +1,8 @@
-
-
-
 .version {
   height: 22px;
   display: flex;
-  justify-content: space-between; /* Mantiene los elementos en los extremos */
+  justify-content: space-between;
+  /* Mantiene los elementos en los extremos */
   align-items: center;
   width: 100%;
   background-color: #00933f;
@@ -18,16 +16,23 @@
 
 /* Contenedor para el texto de derechos de autor, centrado */
 .version .copyright-container {
-  flex-grow: 1; /* Permite que este contenedor ocupe el espacio disponible */
+  flex-grow: 1;
+  /* Permite que este contenedor ocupe el espacio disponible */
   display: flex;
-  justify-content: center; /* Centra el contenido horizontalmente */
+  justify-content: center;
+  /* Centra el contenido horizontalmente */
   align-items: center;
 }
 
 .version p {
-    margin: 0;
-    padding-right: 30px;
-    font-size: 12px;
-    color: white;
+  margin: 0;
+  padding-right: 30px;
+  font-size: 12px;
+  color: white;
 }
 
+@media (min-width: 300px) and (max-width: 500px) {
+  .version p {
+    font-size: 11px;
+  }
+}

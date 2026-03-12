@@ -22,7 +22,7 @@ export const AplazarActividad = ({ actividad, onUpdate, userIdLogueado }) => {
 
                     ${isAplazar ? `
                         <label style="font-size: 14px;"><b>Nueva Fecha propuesta:</b></label>
-                        <input type="date" id="swal-fecha" class="swal2-input" style="margin-top: 5px;"
+                        <input type="datetime-local" id="swal-fecha" class="swal2-input" style="margin-top: 5px;"
                                min="${new Date().toISOString().split('T')[0]}">
                     ` : ''}
 

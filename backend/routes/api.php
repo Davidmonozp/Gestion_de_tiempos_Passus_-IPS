@@ -89,4 +89,7 @@ Route::middleware('auth:api')->group(function () {
 
         return response()->json(['error' => 'No autorizado'], 401);
     });
+
+    // Rutas de aplazamiento de una actividad
+    Route::post('/solicitudes/decidir/{id}', [SolicitudActividadController::class, 'decidir']);
 });

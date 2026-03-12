@@ -5,6 +5,7 @@ import { tienePermiso } from "../../utils/Permisos";
 import "./styles/CrearActividades.css"; // Asegúrate de que la ruta sea correcta
 import { Navbar } from "../../components/Navbar";
 import { Sidebar } from "../../components/Sidebar";
+import Swal from "sweetalert2";
 
 export const CrearActividades = () => {
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ export const CrearActividades = () => {
         minutos_planeados: "",
         minutos_ejecutados: "",
         fecha_finalizacion: "",
-        estado: "Programada", // Sugiero inicializarlo para que el select no esté vacío
+        estado: "Programada", 
         requiere_aprobacion: 0,
         notificar_asignacion: 1,
     });
@@ -69,6 +70,17 @@ export const CrearActividades = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // 1. Mostrar alerta de "Procesando"
+        Swal.fire({
+            title: 'Creando actividad...',
+            text: 'Estamos subiendo los archivos y registrando la información.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
             const data = new FormData();
             for (const key in form) {
@@ -79,12 +91,30 @@ export const CrearActividades = () => {
             archivos.forEach((file) => {
                 data.append("archivos[]", file);
             });
+
             await api.post("/crear-actividad", data);
-            alert("Actividad creada correctamente ✅");
+
+            // 2. Alerta de Éxito
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Actividad Creada!',
+                text: 'La actividad se ha registrado correctamente.',
+                timer: 2000,
+                showConfirmButton: false,
+            });
+
             navigate("/actividades");
+
         } catch (error) {
             console.error(error.response?.data || error.message);
-            alert("Error al crear actividad ❌");
+
+            // 3. Alerta de Error
+            Swal.fire({
+                icon: 'error',
+                title: 'Ups, algo salió mal',
+                text: error.response?.data?.message || 'No se pudo crear la actividad. Intenta de nuevo.',
+                confirmButtonColor: '#0087cd'
+            });
         }
     };
 

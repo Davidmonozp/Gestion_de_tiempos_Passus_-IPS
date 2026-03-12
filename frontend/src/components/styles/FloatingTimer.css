@@ -1,0 +1,66 @@
+/* Este contenedor es la clave para centrarlo verticalmente */
+.ft-floating-container {
+    position: fixed !important; /* Se sale de cualquier contenedor padre */
+    right: 0;                   /* Pegado al borde derecho */
+    top: 50%;                   /* Al medio de la pantalla */
+    transform: translateY(-50%); /* Ajuste perfecto para que el centro sea el centro */
+    z-index: 999999;            /* Por encima de TODO */
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;       /* Para que no bloquee clics accidentales fuera del botón */
+}
+
+/* La tarjeta/badge */
+.ft-info-badge {
+    pointer-events: auto;       /* Reactivamos los clics/hover solo en el badge */
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 2px solid #0087cd;
+    border-right: none;         /* Quitamos el borde derecho para que parezca que sale de la pared */
+    border-radius: 50px 0 0 50px; /* Redondeado solo a la izquierda */
+    padding: 5px;
+    cursor: pointer;
+    box-shadow: -4px 4px 15px rgba(0, 0, 0, 0.15);
+    
+    /* ESTADO INICIAL */
+    width: 50px; 
+    height: 47px;
+    overflow: hidden;
+    transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ft-icon-box {
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0087cd;
+    font-size: 1.4rem;
+}
+
+.ft-time-box {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    margin-right: 20px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ft-time-box small {
+    font-size: 12px;
+}
+.ft-time-box span {
+    font-size: 14px;
+}
+/* --- EFECTO HOVER --- */
+.ft-info-badge:hover {
+    width: 161px; /* Se expande hacia la izquierda */
+    background: #f0f9ff;
+}
+
+.ft-info-badge:hover .ft-time-box {
+    opacity: 1;
+}

@@ -172,9 +172,14 @@ class ActividadController extends Controller
             $archivosArray = [];
             if ($request->hasFile('archivos')) {
                 foreach ($request->file('archivos') as $archivo) {
-                    $path = $archivo->store('actividades', 'public'); // <-- Disk public
+                    $nombreArchivo = time() . '_' . $archivo->getClientOriginalName();
+
+                    // Lo guardas en public/uploads/actividades
+                    $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
+
                     $archivosArray[] = [
-                        'path' => $path,
+                        // IMPORTANTE: Guarda la ruta partiendo desde la raíz pública
+                        'path' => 'uploads/actividades/' . $nombreArchivo,
                         'original_name' => $archivo->getClientOriginalName(),
                     ];
                 }
@@ -249,7 +254,9 @@ class ActividadController extends Controller
                 'aprobadaPor',
                 'evidencias',
                 'revisiones.usuario',
-                'evidencias.user'
+                'evidencias.user',
+                'solicitudes.solicitante',
+                'solicitudes.revisor'
             ])->findOrFail($id);
 
             // 👑 Administrador puede ver todo
@@ -268,6 +275,7 @@ class ActividadController extends Controller
             if ($user->hasRole('Usuario') && $actividad->asignado_a == $user->id) {
                 return response()->json($actividad);
             }
+            
 
             // ❌ Si no cumple nada
             return response()->json([

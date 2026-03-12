@@ -245,7 +245,6 @@
 
 /* Estilo para el total acumulado (Morado o Gris oscuro profesional) */
 .extra-total-style {
-    background-color: #f8f5ff;
     border-left: 4px solid #673ab7;
     color: #311b92;
     font-weight: bold;

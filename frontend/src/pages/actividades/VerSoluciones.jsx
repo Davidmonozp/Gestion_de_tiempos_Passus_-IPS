@@ -1,12 +1,15 @@
 import React from 'react';
 import "./styles/VerSoluciones.css";
+import { AprobarAplazamiento } from './AprobarAplazamiento';
+import { tienePermiso } from '../../utils/Permisos';
 
-export const VerSoluciones = ({ evidencias = [], revisiones = [], actividad, BASE_URL }) => {
+export const VerSoluciones = ({ evidencias = [], revisiones = [], solicitudes = [], actividad, BASE_URL, onUpdate }) => {
 
     // 1. Unificar y ordenar cronológicamente por fecha de creación
     const historial = [
         ...evidencias.map(ev => ({ ...ev, tipoItem: 'solucion' })),
-        ...revisiones.map(rev => ({ ...rev, tipoItem: 'revision' }))
+        ...revisiones.map(rev => ({ ...rev, tipoItem: 'revision' })),
+        ...solicitudes.map(sol => ({ ...sol, tipoItem: 'solicitud' }))
     ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     if (historial.length === 0) return null;
@@ -43,77 +46,93 @@ export const VerSoluciones = ({ evidencias = [], revisiones = [], actividad, BAS
                         const tiempoExtraTotalEnEstePunto = desfaseInicial + acumuladorExtraGlobal;
 
                         return (
-                                <div key={`sol-${item.id}`} className="solucion-item-card">
-                                    <div className="solucion-header">
-                                        {/* ✅ Recuperamos el número consecutivo como lo tenías antes */}
-                                        <span className="solucion-number">Solución #{contadorSoluciones}</span>
-                                        <span className="solucion-fecha">
-                                             {new Date(item.created_at).toLocaleString()}
-                                        </span>
+                            <div key={`sol-${item.id}`} className="solucion-item-card">
+                                <div className="solucion-header">
+                                    {/* ✅ Recuperamos el número consecutivo como lo tenías antes */}
+                                    <span className="solucion-number">Solución #{contadorSoluciones}</span>
+                                    <span className="solucion-fecha">
+                                        {new Date(item.created_at).toLocaleString()}
+                                    </span>
+                                </div>
+
+                                <div className="solucion-body">
+                                    <div className="solucion-text-display">
+                                        {item.descripcion}
                                     </div>
 
-                                    <div className="solucion-body">
-                                        <div className="solucion-text-display">
-                                            {item.descripcion}
-                                        </div>
+                                    <div className="solucion-tiempos-container">
+                                        <div className="solucion-grid-tiempos">
 
-                                        <div className="solucion-tiempos-container">
-                                            <div className="solucion-grid-tiempos">
-
-                                                <div className="solucion-field-group">
-                                                    <label className="solucion-label-view">Tiempo Planeado</label>
-                                                    <div className="solucion-input-readonly ejecutado-style">
-                                                        <span className="icon">📋</span>
-                                                        <span className="value">{actividad?.minutos_planeados || 0} min</span>
-                                                    </div>
+                                            <div className="solucion-field-group">
+                                                <label className="solucion-label-view">Tiempo Planeado</label>
+                                                <div className="solucion-input-readonly ejecutado-style">
+                                                    <span className="icon">📋</span>
+                                                    <span className="value">{actividad?.minutos_planeados || 0} min</span>
                                                 </div>
-
-                                                <div className="solucion-field-group">
-                                                    <label className="solucion-label-view">Tiempo Ejecutado Inicial</label>
-                                                    <div className="solucion-input-readonly ejecutado-style">
-                                                        <span className="icon">⏱️</span>
-                                                        <span className="value">{actividad?.minutos_ejecutados || 0} min</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="solucion-field-group">
-                                                    <label className="solucion-label-view">Adición en esta Solución</label>
-                                                    <div className="solucion-input-readonly extra-individual-style">
-                                                        <span className="icon">🚀</span>
-                                                        <span className="value">+{item.minutos_extra || 0} min</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* AHORA SÍ: Tiempo Extra Total Acumulado en la Actividad hasta esta fecha */}
-                                                <div className="solucion-field-group">
-                                                    <label className="solucion-label-view">Tiempo Extra Total Actividad</label>
-                                                    <div className={`solucion-input-readonly extra-total-style ${tiempoExtraTotalEnEstePunto > 0 ? 'text-danger-custom' : ''}`}>
-                                                        <span className="icon">{tiempoExtraTotalEnEstePunto > 0 ? '⚠️' : '📊'}</span>
-                                                        <span className="value">
-                                                            {tiempoExtraTotalEnEstePunto} min totales
-                                                        </span>
-                                                    </div>
-                                                </div>
-
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    <div className="solucion-footer">
-                                        {item.archivo_path ? (
-                                            <div className="solucion-archivo-box">
-                                                <a href={`${BASE_URL}/storage/${item.archivo_path}`} target="_blank" rel="noreferrer" className="btn-descarga-evidencia">
-                                                    📄 {item.nombre_original || "Ver Archivo"}
-                                                </a>
+                                            <div className="solucion-field-group">
+                                                <label className="solucion-label-view">Tiempo Ejecutado Inicial</label>
+                                                <div className="solucion-input-readonly ejecutado-style">
+                                                    <span className="icon">⏱️</span>
+                                                    <span className="value">{actividad?.minutos_ejecutados || 0} min</span>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="solucion-no-archivo"><small>🚫 Sin adjunto</small></div>
-                                        )}
-                                        <div className="solucion-user-tag">
-                                            👤 Por: <strong>{item.user?.nombre} {item.user?.apellido}</strong>
+
+                                            <div className="solucion-field-group">
+                                                <label className="solucion-label-view">Adición en esta Solución</label>
+                                                <div className="solucion-input-readonly extra-individual-style">
+                                                    <span className="icon">🚀</span>
+                                                    <span className="value">+{item.minutos_extra || 0} min</span>
+                                                </div>
+                                            </div>
+
+                                            {/* AHORA SÍ: Tiempo Extra Total Acumulado en la Actividad hasta esta fecha */}
+                                            <div className="solucion-field-group">
+                                                <label className="solucion-label-view">Tiempo Extra Total Actividad</label>
+                                                <div className={`solucion-input-readonly extra-total-style ${tiempoExtraTotalEnEstePunto > 0 ? 'text-danger-custom' : ''}`}>
+                                                    <span className="icon">{tiempoExtraTotalEnEstePunto > 0 ? '⚠️' : '📊'}</span>
+                                                    <span className="value">
+                                                        {tiempoExtraTotalEnEstePunto} min totales
+                                                    </span>
+                                                </div>
+                                            </div>
+
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="solucion-footer">
+                                    {item.archivo_path ? (
+                                        <div className="solucion-archivo-box">
+                                            <a href={`${BASE_URL}/storage/${item.archivo_path}`} target="_blank" rel="noreferrer" className="btn-descarga-evidencia">
+                                                📄 {item.nombre_original || "Ver Archivo"}
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="solucion-no-archivo"><small>🚫 Sin adjunto</small></div>
+                                    )}
+                                    <div className="solucion-user-tag">
+                                        👤 Por: <strong>{item.user?.nombre} {item.user?.apellido}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+
+                    if (item.tipoItem === 'solicitud') {
+                        // 1. Definimos si el usuario tiene permiso para GESTIONAR
+                        const puedeGestionar = tienePermiso(['JefeInmediato', 'Administrador']) && actividad.estado === 'Espera_aprobacion';
+
+                        return (
+                            <AprobarAplazamiento
+                                key={`solic-${item.id}`}
+                                solicitud={item}
+                                onUpdate={onUpdate}
+                                // Pasamos una prop extra para decirle al componente si debe permitir editar o no
+                                puedeGestionar={puedeGestionar}
+                            />
                         );
                     }
 
