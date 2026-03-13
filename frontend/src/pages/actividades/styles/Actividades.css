@@ -303,7 +303,7 @@ h1 {
     gap: 0px;
     margin-bottom: 20px;
     margin-top: 20px;
-    width: 24%;
+    width: auto;
 }
 
 /* Botones con tu estilo de degradado rojo si prefieres */

@@ -356,19 +356,18 @@ export const VerActividad = () => {
                                     form.archivos.map((arc, i) => (
                                         <div key={i} className="archivo-item-guardado">
                                             <a
-                                                href={`${BASE_URL}/storage/${arc.path}`}
+                                                href={arc.url} // 👈 Usamos la URL directa del Accessor
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 style={{ textDecoration: "none", color: "#333" }}
                                             >
-                                                📄 {arc.nombre_original || "Archivo"}
+                                                📄 {arc.original_name || "Archivo"}
                                             </a>
 
                                             {editMode && (
                                                 <button
                                                     type="button"
                                                     className="btn-quitar-archivo"
-                                                    /* Usamos la función local para quitarlo del array antes de guardar */
                                                     onClick={() => eliminarArchivoDeColumna(i)}
                                                     title="Quitar de la lista"
                                                 >

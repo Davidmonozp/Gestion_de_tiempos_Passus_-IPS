@@ -1,0 +1,101 @@
+/* Contenedor principal */
+.calendar-container {
+    width: 99%;
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #edf2f7;
+    
+}
+
+/* Sección de la Leyenda */
+.calendar-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    padding: 12px;
+    background-color: #004a6e;
+    /* background-color: #0087cd; */
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+/* Envoltura del calendario para controlar el overflow */
+.calendar-wrapper {
+    position: relative;
+    z-index: 1;
+    /* Para que no se encime con otros elementos de la UI */
+}
+
+/* --- Ajustes de FullCalendar --- */
+
+/* Título (Mes y Año) */
+.fc .fc-toolbar-title {
+    font-size: 27px;
+        color: #06547d;
+    font-weight: 700;
+}
+
+/* Botones de navegación */
+
+.fc .fc-button-primary {
+    background-color: #0087cd;
+    border-color: transparent;
+    color: white;
+}
+
+.fc .fc-button-primary:hover {
+    background-color: #004a6e;
+    border-color: #004263;
+    color: white;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active:focus,
+.fc .fc-button-primary:not(:disabled):active:focus {
+    box-shadow: rgba(76, 91, 106, 0.5) 0px 0px 0px 0.2rem;
+    background-color: #004a6e;
+}
+
+.fc .fc-button-primary:disabled {
+    background-color: #0087cd;
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.fc .fc-button-group>.fc-button.fc-button-active,
+.fc .fc-button-group>.fc-button:active,
+.fc .fc-button-group>.fc-button:focus,
+.fc .fc-button-group>.fc-button:hover {
+    z-index: 1;
+    background-color: #004a6e;
+}
+
+.fc-direction-ltr {
+    direction: ltr;
+    text-align: left;
+    border-radius: 16px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    padding: 20px;
+    margin-bottom: 20px;
+}

@@ -76,4 +76,39 @@ class Actividad extends Model
     {
         return $this->hasMany(SolicitudActividad::class, 'actividad_id');
     }
+
+    public function getArchivosAttribute($value)
+    {
+        // Como ya está en $casts como 'array', $value ya es un array de PHP.
+        // Solo verificamos si es una cadena por si acaso, si no, lo usamos directo.
+        $archivos = is_string($value) ? json_decode($value, true) : $value;
+
+        if (empty($archivos)) return [];
+
+        return array_map(function ($archivo) {
+            return [
+                'original_name' => $archivo['original_name'] ?? 'Archivo',
+                'url' => isset($archivo['path']) ? asset($archivo['path']) : null,
+                'path' => $archivo['path'] ?? null
+            ];
+        }, $archivos);
+    }
+
+    /**
+     * Accessor para archivos de solución (hacemos lo mismo)
+     */
+    public function getArchivosSolucionAttribute($value)
+    {
+        $archivos = is_string($value) ? json_decode($value, true) : $value;
+
+        if (empty($archivos)) return [];
+
+        return array_map(function ($archivo) {
+            return [
+                'original_name' => $archivo['original_name'] ?? 'Archivo',
+                'url' => isset($archivo['path']) ? asset($archivo['path']) : null,
+                'path' => $archivo['path'] ?? null
+            ];
+        }, $archivos);
+    }
 }

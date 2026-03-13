@@ -105,12 +105,15 @@ export const VerSoluciones = ({ evidencias = [], revisiones = [], solicitudes = 
                                 <div className="solucion-footer">
                                     {item.archivo_path ? (
                                         <div className="solucion-archivo-box">
-                                            <a href={`${BASE_URL}/storage/${item.archivo_path}`} target="_blank" rel="noreferrer" className="btn-descarga-evidencia">
+                                            {/* href usa la URL generada por el Accessor */}
+                                            <a href={item.url} target="_blank" rel="noreferrer" className="btn-descarga-evidencia">
                                                 📄 {item.nombre_original || "Ver Archivo"}
                                             </a>
                                         </div>
                                     ) : (
-                                        <div className="solucion-no-archivo"><small>🚫 Sin adjunto</small></div>
+                                        <div className="solucion-no-archivo">
+                                            <small>🚫 Sin adjunto</small>
+                                        </div>
                                     )}
                                     <div className="solucion-user-tag">
                                         👤 Por: <strong>{item.user?.nombre} {item.user?.apellido}</strong>
@@ -155,8 +158,8 @@ export const VerSoluciones = ({ evidencias = [], revisiones = [], solicitudes = 
                                 <div className="revision-adjuntos">
                                     <div className="adjuntos-lista">
                                         {item.archivos_revision.map((file, i) => (
-                                            <a key={i} href={`${BASE_URL}/storage/${file.path}`} target="_blank" className="btn-adjunto-rev">
-                                                📎 {file.nombre_original}
+                                            <a key={i} href={file.url} target="_blank" rel="noreferrer" className="btn-adjunto-rev">
+                                                📎 {file.original_name}
                                             </a>
                                         ))}
                                     </div>

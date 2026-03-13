@@ -47,6 +47,7 @@ export const Navbar = () => {
                 <div className={`navbar-links ${open ? "show" : ""}`}>
                     <Link to="/vista-principal" onClick={closeMenu}>Inicio</Link>
                     <Link to="/actividades" onClick={closeMenu}>Actividades</Link>
+                    <Link to="/calendario" onClick={closeMenu}>Calendario</Link>
                     <Link to="/vista-principal" onClick={closeMenu}>Reportes</Link>
                     <Link to="/vista-principal" onClick={closeMenu}>Configuración</Link>
 

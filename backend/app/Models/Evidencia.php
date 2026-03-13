@@ -15,6 +15,12 @@ class Evidencia extends Model
         'minutos_ejecutados',
         'minutos_extra'
     ];
+    protected $appends = ['url'];
+
+    public function getUrlAttribute()
+    {
+        return $this->archivo_path ? asset($this->archivo_path) : null;
+    }
 
     public function actividad()
     {

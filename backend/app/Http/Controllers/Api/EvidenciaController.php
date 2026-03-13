@@ -17,6 +17,86 @@ class EvidenciaController extends Controller
         return Evidencia::with('actividad')->get();
     }
 
+    // public function enviarSolucion(Request $request, $id)
+    // {
+    //     try {
+    //         return DB::transaction(function () use ($request, $id) {
+    //             $user = Auth::user();
+    //             $actividad = Actividad::findOrFail($id);
+
+    //             $request->validate([
+    //                 'solucion' => 'required|string',
+    //                 'minutos_ejecutados' => 'nullable|numeric',
+    //                 'minutos_extra' => 'nullable|numeric',
+    //                 'estado' => 'required|string',
+    //                 'archivos_solucion.*' => 'nullable|file|max:10240'
+    //             ]);
+
+    //             // Lógica de Tiempos
+    //             $tieneEvidencias = $actividad->evidencias()->exists();
+    //             $minEjEvidencia = 0;
+    //             $minExEvidencia = 0;
+
+    //             if ($tieneEvidencias) {
+    //                 $minExEvidencia = $request->minutos_extra ?? 0;
+    //                 $actividad->minutos_extra += $minExEvidencia;
+    //             } else {
+    //                 $minEjEvidencia = $request->minutos_ejecutados ?? 0;
+    //                 $actividad->minutos_ejecutados = $minEjEvidencia;
+    //                 $actividad->minutos_extra = 0;
+    //             }
+
+    //             // 3. Estado de la Actividad
+    //             // Si requiere aprobación, pasa a 'Espera_aprobacion', sino al estado del request
+    //             $estadoFinal = $actividad->requiere_aprobacion ? 'Espera_aprobacion' : $request->estado;
+
+    //             $actividad->fill([
+    //                 'estado' => $estadoFinal,
+    //                 'solucion' => $request->solucion, // Guardamos la última solución en el modelo principal
+    //             ]);
+    //             $actividad->save();
+
+    //             // 4. Registro de Evidencias
+    //             if ($request->hasFile('archivos_solucion')) {
+    //                 foreach ($request->file('archivos_solucion') as $archivo) {
+    //                     if ($archivo->isValid()) {
+    //                         $path = $archivo->store('evidencias', 'public');
+    //                         $actividad->evidencias()->create([
+    //                             'user_id' => $user->id,
+    //                             'descripcion' => $request->solucion,
+    //                             'archivo_path' => $path,
+    //                             'nombre_original' => $archivo->getClientOriginalName(),
+    //                             'minutos_ejecutados' => $minEjEvidencia,
+    //                             'minutos_extra' => $minExEvidencia
+    //                         ]);
+    //                     }
+    //                 }
+    //             } else {
+    //                 $actividad->evidencias()->create([
+    //                     'user_id' => $user->id,
+    //                     'descripcion' => $request->solucion,
+    //                     'minutos_ejecutados' => $minEjEvidencia,
+    //                     'minutos_extra' => $minExEvidencia
+    //                 ]);
+    //             }
+
+    //             // ENVÍO DE NOTIFICACIÓN AL JEFE
+    //             if ($estadoFinal === 'Espera_aprobacion' && $actividad->asignadoPor) {
+    //                 // Asegúrate de crear esta notificación: php artisan make:notification SolucionRecibida
+    //                 $actividad->asignadoPor->notify(new \App\Notifications\SolucionRecibida($actividad));
+    //             }
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'message' => 'Solución enviada correctamente.'
+    //             ]);
+    //         });
+    //     } catch (\Exception $e) {
+    //         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    //     }
+    // }
+
+
     public function enviarSolucion(Request $request, $id)
     {
         try {
@@ -32,7 +112,7 @@ class EvidenciaController extends Controller
                     'archivos_solucion.*' => 'nullable|file|max:10240'
                 ]);
 
-                // Lógica de Tiempos
+                // 1. Lógica de Tiempos
                 $tieneEvidencias = $actividad->evidencias()->exists();
                 $minEjEvidencia = 0;
                 $minExEvidencia = 0;
@@ -46,43 +126,47 @@ class EvidenciaController extends Controller
                     $actividad->minutos_extra = 0;
                 }
 
-                // 3. Estado de la Actividad
-                // Si requiere aprobación, pasa a 'Espera_aprobacion', sino al estado del request
+                // 2. Estado de la Actividad
                 $estadoFinal = $actividad->requiere_aprobacion ? 'Espera_aprobacion' : $request->estado;
 
                 $actividad->fill([
                     'estado' => $estadoFinal,
-                    'solucion' => $request->solucion, // Guardamos la última solución en el modelo principal
+                    'solucion' => $request->solucion,
                 ]);
                 $actividad->save();
 
-                // 4. Registro de Evidencias
+                // 3. Preparación de datos comunes para evidencias
+                $evidenciaBase = [
+                    'user_id' => $user->id,
+                    'descripcion' => $request->solucion,
+                    'minutos_ejecutados' => $minEjEvidencia,
+                    'minutos_extra' => $minExEvidencia
+                ];
+
+                // 4. Registro de Evidencias (Guardado Directo en PUBLIC)
                 if ($request->hasFile('archivos_solucion')) {
                     foreach ($request->file('archivos_solucion') as $archivo) {
                         if ($archivo->isValid()) {
-                            $path = $archivo->store('evidencias', 'public');
-                            $actividad->evidencias()->create([
-                                'user_id' => $user->id,
-                                'descripcion' => $request->solucion,
+                            // Generamos nombre único para evitar sobrescribir
+                            $nombreFinal = time() . '_' . $archivo->getClientOriginalName();
+
+                            // Movemos a public/uploads/evidencias (No requiere symlink)
+                            $archivo->move(public_path('uploads/evidencias'), $nombreFinal);
+
+                            $path = 'uploads/evidencias/' . $nombreFinal;
+
+                            $actividad->evidencias()->create(array_merge($evidenciaBase, [
                                 'archivo_path' => $path,
                                 'nombre_original' => $archivo->getClientOriginalName(),
-                                'minutos_ejecutados' => $minEjEvidencia,
-                                'minutos_extra' => $minExEvidencia
-                            ]);
+                            ]));
                         }
                     }
                 } else {
-                    $actividad->evidencias()->create([
-                        'user_id' => $user->id,
-                        'descripcion' => $request->solucion,
-                        'minutos_ejecutados' => $minEjEvidencia,
-                        'minutos_extra' => $minExEvidencia
-                    ]);
+                    $actividad->evidencias()->create($evidenciaBase);
                 }
 
-                // ENVÍO DE NOTIFICACIÓN AL JEFE
+                // 5. Notificación
                 if ($estadoFinal === 'Espera_aprobacion' && $actividad->asignadoPor) {
-                    // Asegúrate de crear esta notificación: php artisan make:notification SolucionRecibida
                     $actividad->asignadoPor->notify(new \App\Notifications\SolucionRecibida($actividad));
                 }
 
@@ -95,88 +179,6 @@ class EvidenciaController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-    //    public function enviarSolucion(Request $request, $id)
-    // {
-    //     try {
-    //         return DB::transaction(function () use ($request, $id) {
-    //             $user = Auth::user();
-    //             $actividad = Actividad::findOrFail($id);
-
-    //             // 1. Validación
-    //             $request->validate([
-    //                 'solucion' => 'required|string',
-    //                 'minutos_ejecutados' => 'nullable|numeric',
-    //                 'minutos_extra' => 'nullable|numeric',
-    //                 'estado' => 'required|string',
-    //                 'archivos_solucion.*' => 'nullable|file|max:10240'
-    //             ]);
-
-    //             // 2. Lógica de Tiempos y determinación de valores para la Evidencia
-    //             $tieneEvidencias = Evidencia::where('actividad_id', $id)->exists();
-
-    //             // Valores que guardaremos en la tabla 'evidencias'
-    //             $minEjEvidencia = 0;
-    //             $minExEvidencia = 0;
-
-    //             if ($tieneEvidencias) {
-    //                 // Es una solución posterior: sumamos al extra
-    //                 $minExEvidencia = $request->minutos_extra ?? 0;
-    //                 $actividad->minutos_extra += $minExEvidencia;
-    //             } else {
-    //                 // Es la primera solución: registramos el ejecutado inicial
-    //                 $minEjEvidencia = $request->minutos_ejecutados ?? 0;
-    //                 $actividad->minutos_ejecutados = $minEjEvidencia;
-    //                 $actividad->minutos_extra = 0;
-    //             }
-
-    //             // 3. Actualizar estado de la Actividad
-    //             $estadoFinal = $actividad->requiere_aprobacion ? 'Espera_aprobacion' : $request->estado;
-    //             $actividad->estado = $estadoFinal;
-    //             $actividad->save();
-
-    //             // 4. Registro de Evidencias con sus respectivos tiempos
-    //             if ($request->hasFile('archivos_solucion')) {
-    //                 foreach ($request->file('archivos_solucion') as $archivo) {
-    //                     if ($archivo->isValid()) {
-    //                         $path = $archivo->store('evidencias', 'public');
-
-    //                         Evidencia::create([
-    //                             'actividad_id' => $actividad->id,
-    //                             'user_id' => $user->id,
-    //                             'descripcion' => $request->solucion,
-    //                             'archivo_path' => $path,
-    //                             'nombre_original' => $archivo->getClientOriginalName(),
-    //                             'minutos_ejecutados' => $minEjEvidencia, // 👈 Guardamos el tiempo de esta entrega
-    //                             'minutos_extra' => $minExEvidencia      // 👈 Guardamos el tiempo de esta entrega
-    //                         ]);
-    //                     }
-    //                 }
-    //             } else {
-    //                 // Registro sin archivos
-    //                 Evidencia::create([
-    //                     'actividad_id' => $actividad->id,
-    //                     'user_id' => $user->id,
-    //                     'descripcion' => $request->solucion,
-    //                     'archivo_path' => null,
-    //                     'nombre_original' => null,
-    //                     'minutos_ejecutados' => $minEjEvidencia,
-    //                     'minutos_extra' => $minExEvidencia
-    //                 ]);
-    //             }
-
-    //             return response()->json([
-    //                 'success' => true,
-    //                 'message' => 'Solución registrada y productividad actualizada'
-    //             ]);
-    //         });
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Error: ' . $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
 
     public function listarSoluciones($id)
     {
