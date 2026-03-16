@@ -225,46 +225,54 @@ class EvidenciaController extends Controller
     }
 
 
-    public function revisarActividad(Request $request, $id)
-    {
-        try {
-            return DB::transaction(function () use ($request, $id) {
-                $actividad = Actividad::findOrFail($id);
-                $user = Auth::user();
+   public function revisarActividad(Request $request, $id)
+{
+    try {
+        return DB::transaction(function () use ($request, $id) {
+            $actividad = Actividad::findOrFail($id);
+            $user = Auth::user();
 
-                // 1. Procesar Archivos (Igual que en enviarSolucion)
-                $archivosRevision = [];
-                if ($request->hasFile('archivos_jefe')) {
-                    foreach ($request->file('archivos_jefe') as $archivo) {
-                        if ($archivo->isValid()) {
-                            $path = $archivo->store('revisiones_jefes', 'public');
-                            $archivosRevision[] = [
-                                'nombre_original' => $archivo->getClientOriginalName(),
-                                'path' => $path
-                            ];
-                        }
+            // 1. Procesar Archivos para la carpeta PUBLIC
+            $archivosRevision = [];
+            if ($request->hasFile('archivos_jefe')) {
+                foreach ($request->file('archivos_jefe') as $archivo) {
+                    if ($archivo->isValid()) {
+                        // Generamos un nombre único para evitar que se sobrescriban
+                        $nombreArchivo = time() . '_' . $archivo->getClientOriginalName();
+                        
+                        // MOVER el archivo directamente a public/uploads/actividades/
+                        // Esto hace que el archivo sea accesible por URL sin storage:link
+                        $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
+
+                        $archivosRevision[] = [
+                            'nombre_original' => $archivo->getClientOriginalName(),
+                            // Guardamos la URL completa o el nombre para construirla
+                            'path' => 'uploads/actividades/' . $nombreArchivo,
+                            'url' => url('uploads/actividades/' . $nombreArchivo) // Esto genera el http://127.0.0.1:8000/...
+                        ];
                     }
                 }
+            }
 
-                // 2. Crear el registro en el historial
-                $actividad->revisiones()->create([
-                    'user_id' => $user->id,
-                    'observacion' => $request->observacion_jefe,
-                    'estado_aplicado' => $request->aprobado === 'true' ? 'Finalizada' : 'Por_corregir',
-                    'archivos_revision' => $archivosRevision
-                ]);
+            // 2. Crear el registro en el historial
+            $actividad->revisiones()->create([
+                'user_id' => $user->id,
+                'observacion' => $request->observacion_jefe,
+                'estado_aplicado' => $request->aprobado === 'true' ? 'Finalizada' : 'Por_corregir',
+                'archivos_revision' => $archivosRevision // Se guarda el array con las nuevas rutas
+            ]);
 
-                // 3. Actualizar la actividad principal
-                $actividad->estado = $request->aprobado === 'true' ? 'Finalizada' : 'Por_corregir';
-                $actividad->observacion_jefe = $request->observacion_jefe; // Mantener la última nota a mano
-                $actividad->save();
+            // 3. Actualizar la actividad principal
+            $actividad->estado = $request->aprobado === 'true' ? 'Finalizada' : 'Por_corregir';
+            $actividad->observacion_jefe = $request->observacion_jefe; 
+            $actividad->save();
 
-                return response()->json(['success' => true, 'message' => 'Revisión registrada']);
-            });
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+            return response()->json(['success' => true, 'message' => 'Revisión registrada']);
+        });
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
+}
     // public function revisarActividad(Request $request, $id)
     // {
     //     $request->validate([
