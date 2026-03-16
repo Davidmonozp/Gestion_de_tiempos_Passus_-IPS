@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react'; // Añadimos useMemo por rendimiento
 import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -6,122 +6,119 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import "./styles/CalendarioActividades.css";
 
-// Importamos Tippy y sus estilos
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css'; 
 
 const CalendarioActividades = ({ actividades }) => {
     const navigate = useNavigate();
 
-    const COLORES_AREAS = {
-        'Gestión Del Riesgo - Operaciones Misionales': '#3498db', 
-        'Desarrollo': '#9b59b6',     
-        'Administración': '#27ae60',   
-        'Contabilidad': '#f1c40f',     
-        'Automatización Y Desarrollo Tecnológico': '#e74c3c',        
-        'Default': '#95a5a6'           
-    };
+    // 1. Procesamos los eventos y extraemos las áreas únicas para la leyenda
+    // Usamos useMemo para que esto solo se recalcule si "actividades" cambia
+    const { eventos, leyendaAreas } = useMemo(() => {
+        const coloresVistos = new Map(); // Para la leyenda dinámica
 
-    const eventos = actividades.map(act => {
-        const colorAsignado = COLORES_AREAS[act.area?.nombre] || act.area?.color || COLORES_AREAS['Default'];
-        
-        return {
-            id: act.id,
-            title: act.nombre,
-            start: act.fecha_finalizacion, 
-            backgroundColor: colorAsignado,
-            borderColor: colorAsignado,
-            extendedProps: {
-                // Asegúrate de que estos nombres coincidan con tu API
-                descripcion: act.descripcion || 'Sin descripción',
-                estado: act.estado || 'N/A',
-                areaNombre: act.area?.nombre || 'Sin área'
+        const evs = actividades.map(act => {
+            const nombreArea = act.area?.nombre || 'Sin área';
+            const colorFinal = act.area?.color || '#95a5a6'; // Color de la DB o gris
+
+            // Guardamos el color para la leyenda si no lo tenemos
+            if (!coloresVistos.has(nombreArea)) {
+                coloresVistos.set(nombreArea, colorFinal);
             }
-        };
-    });
 
-    // Función para renderizar el Tooltip
-const handleEventDidMount = (info) => {
-    const { descripcion, estado, areaNombre } = info.event.extendedProps;
-    
-    tippy(info.el, {
-        content: `
-            <div style="text-align: left; padding: 5px; color: white;">
-                <strong>${info.event.title}</strong><br/>
-                <small>Área: ${areaNombre}</small><br/>
-                <small>Estado: ${estado}</small><hr style="margin: 5px 0; border: 0; border-top: 1px solid #555;"/>
-                <p style="margin: 0; font-size: 12px;">${descripcion}</p>
-            </div>
-        `,
-        allowHTML: true,
-        placement: 'top',
-        interactive: true,
-        // ESTO SOLUCIONA EL CORTE:
-        appendTo: () => document.body, 
-        zIndex: 9999,
-        // Opcional: añade un poco de separación para que no pegue al borde
-        offset: [0, 10], 
-    });
-};
+            return {
+                id: act.id,
+                title: act.nombre,
+                start: act.fecha_finalizacion, 
+                backgroundColor: colorFinal,
+                borderColor: colorFinal,
+                extendedProps: {
+                    descripcion: act.descripcion || 'Sin descripción',
+                    estado: act.estado || 'N/A',
+                    areaNombre: nombreArea
+                }
+            };
+        });
+
+        return { 
+            eventos: evs, 
+            leyendaAreas: Array.from(coloresVistos.entries()) 
+        };
+    }, [actividades]);
+
+    const handleEventDidMount = (info) => {
+        const { descripcion, estado, areaNombre } = info.event.extendedProps;
+        
+        tippy(info.el, {
+            content: `
+                <div style="text-align: left; padding: 5px; color: white;">
+                    <strong>${info.event.title}</strong><br/>
+                    <small>Área: ${areaNombre}</small><br/>
+                    <small>Estado: ${estado}</small><hr style="margin: 5px 0; border: 0; border-top: 1px solid #555;"/>
+                    <p style="margin: 0; font-size: 12px;">${descripcion}</p>
+                </div>
+            `,
+            allowHTML: true,
+            placement: 'top',
+            interactive: true,
+            appendTo: () => document.body, 
+            zIndex: 9999,
+            offset: [0, 10], 
+        });
+    };
 
     const handleEventClick = (info) => {      
         navigate(`/ver-actividad/${info.event.id}`);
     };
 
-   return (
-    <div className="calendar-container">
-        
-        {/* Leyenda de colores */}
-        <div className="calendar-legend">
-            {Object.entries(COLORES_AREAS).map(([nombre, color]) => (
-                <div key={nombre} className="legend-item">
-                    <div 
-                        className="legend-color-dot" 
-                        style={{ background: color }} // El color sí debe ser dinámico
-                    />
-                    <span className="legend-text">{nombre}</span>
-                </div>
-            ))}
-        </div>
+    return (
+        <div className="calendar-container">
+            
+            {/* 2. Leyenda Dinámica: Ahora usa los colores reales de tu DB */}
+            <div className="calendar-legend">
+                {leyendaAreas.map(([nombre, color]) => (
+                    <div key={nombre} className="legend-item">
+                        <div 
+                            className="legend-color-dot" 
+                            style={{ background: color }} 
+                        />
+                        <span className="legend-text">{nombre}</span>
+                    </div>
+                ))}
+            </div>
 
-        {/* El Calendario */}
-        <div className="calendar-wrapper">
-            <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                locale="es"
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                }}
-                buttonText={{
-                    today: 'Hoy',
-                    month: 'Mes',
-                    week: 'Semana',
-                    day: 'Día'
-                }}
-                events={eventos}
-                eventClick={handleEventClick}
-                eventDidMount={handleEventDidMount} 
-                height="700px"
-                eventMouseEnter={(info) => {
-                    info.el.style.cursor = 'pointer';
-                }}
-                slotLabelFormat={{
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    omitZeroMinute: false,
-                    meridiem: 'short'
-                }}
-            />
+            <div className="calendar-wrapper">
+                <FullCalendar
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                    initialView="dayGridMonth"
+                    locale="es"
+                    headerToolbar={{
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    }}
+                    buttonText={{
+                        today: 'Hoy',
+                        month: 'Mes',
+                        week: 'Semana',
+                        day: 'Día'
+                    }}
+                    events={eventos} // Usamos los eventos procesados
+                    eventClick={handleEventClick}
+                    eventDidMount={handleEventDidMount} 
+                    height="700px"
+                    aspectRatio={1.5}
+                    dayMaxEvents={true}
+                    eventMouseEnter={(info) => {
+                        info.el.style.cursor = 'pointer';
+                    }}
+                />
+            </div>
         </div>
-    </div>
-);
+    );
 };
 
 export default CalendarioActividades;
-
 
 
 

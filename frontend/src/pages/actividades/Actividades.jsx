@@ -148,7 +148,7 @@ export const Actividades = () => {
                                                         <p><strong>Asignado A:</strong> {actividad.asignado_a?.nombre}</p>
                                                         <p><strong>Fecha límite:</strong> {actividad.fecha_finalizacion || "-"}</p>
                                                         <div className="archivos">
-                                                            <strong>Archivos:</strong>
+                                                            <strong>Archivos: </strong>
                                                             {archivos.length === 0 ? " Sin archivos" : (
                                                                 <a href={`${BASE_URL}/storage/${archivos[0].path}`} target="_blank" rel="noopener noreferrer">
                                                                     {archivos[0].original_name}

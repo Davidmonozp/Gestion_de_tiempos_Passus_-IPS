@@ -106,26 +106,34 @@ export const VerActividad = () => {
         Object.keys(form).forEach(key => {
             const value = form[key];
 
-            // 1. Manejo de objetos (Extraer solo el ID para las llaves foráneas)
-            if (key === 'area' && value?.id) {
-                data.append('area_id', value.id);
-            } else if (key === 'asignado_a' && value?.id) {
+            // 1. Manejo de IDs de objetos (Relaciones)
+            // Extraemos el ID solo si el campo es un objeto y tiene ID
+            if (key === 'asignado_a' && value?.id) {
                 data.append('asignado_a', value.id);
-            } else if (key === 'aprobada_por' && value?.id) { // <-- AGREGAR ESTO
+            }
+            else if (key === 'aprobada_por' && value?.id) {
                 data.append('aprobada_por', value.id);
             }
 
-            // 2. Manejo de Booleanos para Laravel
+            // 2. Manejo de Booleanos para Laravel (Transformar a "1" o "0")
             else if (['requiere_aprobacion', 'notificar_asignacion'].includes(key)) {
                 data.append(key, value ? "1" : "0");
             }
 
-            // 3. EXCLUIR los campos que se manejan aparte o que no deben enviarse
+            // 3. EXCLUIR Y LIMPIAR
+            // Excluimos los objetos completos para que no se envíen como "[object Object]"
+            // Y excluimos lo que se maneja por fuera del loop (archivos)
             else if (![
-                'archivos', 'archivos_solucion', 'area', 'asignado_por',
-                'asignado_a_user', 'evidencias', 'observaciones',
+                'archivos',
+                'archivos_solucion',
+                'area',           // Excluimos el objeto área viejo
+                'asignado_por',
+                'asignado_a_user',
+                'evidencias',
+                'observaciones',
                 'aprobada_por'
             ].includes(key)) {
+                // Solo agregamos si el valor no es nulo
                 if (value !== null && value !== undefined) {
                     data.append(key, value);
                 }
@@ -141,7 +149,7 @@ export const VerActividad = () => {
 
         // Agregar archivos NUEVOS seleccionados en el input
         nuevosArchivos.forEach(file => {
-            data.append("archivos_solucion[]", file);
+            data.append("archivos[]", file);
         });
 
         // Simular PUT a través de POST (necesario para multipart/form-data en Laravel)
@@ -268,8 +276,15 @@ export const VerActividad = () => {
 
                                 <label>Área:</label>
                                 {editMode ? (
-                                    <select name="area_id" value={form.area_id} onChange={handleChange} style={{ width: "100%" }}>
-                                        {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                                    <select
+                                        name="area_id"
+                                        // Esto asegura que el select muestre el área actual o la nueva que elijas
+                                        value={form.area_id || form.area?.id || ""}
+                                        onChange={handleChange}
+                                    >
+                                        {areas.map(a => (
+                                            <option key={a.id} value={a.id}>{a.nombre}</option>
+                                        ))}
                                     </select>
                                 ) : <p><strong>{form.area?.nombre}</strong></p>}
                             </div>
@@ -414,6 +429,11 @@ export const VerActividad = () => {
                         )}
                     </form>
 
+
+
+                    <VerSoluciones actividadId={form.id} />
+
+                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} solicitudes={form.solicitudes} actividad={form} BASE_URL={BASE_URL} onUpdate={cargarDetalles} />
                     {/* --- LÓGICA DE REVISIÓN DEL JEFE --- */}
                     {tienePermiso(['JefeInmediato', 'Administrador']) && form.estado === 'Espera_aprobacion' && (
                         <RevisarActividad
@@ -422,13 +442,12 @@ export const VerActividad = () => {
                         />
                     )}
 
-                    <VerSoluciones actividadId={form.id} />
-
-                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} solicitudes={form.solicitudes} actividad={form} BASE_URL={BASE_URL} onUpdate={cargarDetalles} />
-                    <EnviarSolucion
-                        actividad={form}
-                        onSuccess={cargarDetalles}
-                    />
+                    {tienePermiso(['Usuario']) && (
+                        <EnviarSolucion
+                            actividad={form}
+                            onSuccess={cargarDetalles}
+                        />
+                    )}
                 </div>
             </div>
             <Version />

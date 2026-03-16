@@ -157,11 +157,33 @@ export const VerSoluciones = ({ evidencias = [], revisiones = [], solicitudes = 
                             {item.archivos_revision?.length > 0 && (
                                 <div className="revision-adjuntos">
                                     <div className="adjuntos-lista">
-                                        {item.archivos_revision.map((file, i) => (
-                                            <a key={i} href={file.url} target="_blank" rel="noreferrer" className="btn-adjunto-rev">
-                                                📎 {file.original_name}
-                                            </a>
-                                        ))}
+                                        {item.archivos_revision.map((file, i) => {
+                                            const isNewFile = file instanceof File;
+
+                                            // 1. Intentar obtener la URL
+                                            const fileUrl = isNewFile
+                                                ? URL.createObjectURL(file)
+                                                : (file.url || (file.path ? `${BASE_URL}/storage/${file.path}` : "#"));
+
+                                            // 2. Intentar obtener el nombre (Busca en todas las posibilidades de Laravel)
+                                            // Agregamos 'nombre_archivo', 'archivo', y 'original_name'
+                                            const fileName = isNewFile
+                                                ? file.name
+                                                : (file.nombre_original || file.original_name || file.nombre_archivo || file.name || file.archivo || "Ver adjunto");
+
+                                            return (
+                                                <a
+                                                    key={`file-rev-${item.id}-${i}`}
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="btn-adjunto-rev"
+                                                    title={fileName}
+                                                >
+                                                    {isNewFile ? '🆕' : '📎'} {fileName}
+                                                </a>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
