@@ -1,44 +1,98 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from "../../services/api";
-import { useAuth } from '../../context/AuthContext'; // 1. Importar el hook
+import { useAuth } from '../../context/AuthContext';
 import './styles/VistaPrincipal.css';
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, 
-    ResponsiveContainer, PieChart, Pie, Cell, Legend
+    BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+    ResponsiveContainer, PieChart, Pie, Cell, Legend,
+    LabelList,
+    RadarChart,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis,
+    Radar,
+    Treemap
 } from "recharts";
 import { Sidebar } from '../../components/Sidebar';
 import { Navbar } from '../../components/Navbar';
 import { Version } from '../../components/Version';
 
 export const VistaPrincipal = () => {
-    // 2. Extraer valores del contexto (eliminamos estados locales de tiempo)
-    const { 
-        jornadaActiva, 
-        tiempoTranscurrido, 
-        handleEntrada, 
-        handleSalida 
+    const {
+        jornadaActiva,
+        tiempoTranscurrido,
+        handleEntrada,
+        handleSalida
     } = useAuth();
 
+    // ESTADOS
     const [loading, setLoading] = useState(true);
+    const [actividadesRaw, setActividadesRaw] = useState([]); // Guardamos la data bruta para los memos
     const [totalActividades, setTotalActividades] = useState(0);
     const [actividadesPendientes, setActividadesPendientes] = useState(0);
     const [resumenEstados, setResumenEstados] = useState({});
     const [resumenAreas, setResumenAreas] = useState({});
+    const [statsCumplimiento, setStatsCumplimiento] = useState({
+        aTiempo: 0, conRetraso: 0, pctATiempo: 0, pctConRetraso: 0
+    });
 
     const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6"];
+    const COLORES_POR_AREA = {
+        1: "#3498db", // ADMINISTRATIVA
+        2: "#2ecc71", // ADMISIONES
+        3: "#e74c3c", // AUTOMATIZACIÓN
+        4: "#f1c40f", // BIENESTAR
+        5: "#9b59b6", // CALIDAD
+        6: "#1abc9c", // COMERCIAL
+        7: "#e67e22", // CONTABILIDAD
+        8: "#34495e", // DIRECCION
+        9: "#16a085", // FACTURACIÓN Y CARTERA
+        10: "#2980b9", // GESTIÓN HUMANA
+        11: "#8e44ad", // INFRAESTRUCTURA
+        12: "#2c3e50", // LOGISTICA
+        13: "#d35400", // OPERACIONES
+        14: "#c0392b", // SERVICIOS DE SALUD
+        15: "#7f8c8d"  // TESORERIA
+    };
 
-    // 3. Solo mantenemos el fetch de datos para las gráficas y KPIs
+    // Busca esta función en tu código
+    const CustomizedContent = (props) => {
+        const { root, depth, x, y, width, height, index, name, fill } = props; // <--- Agrega 'fill' aquí
+
+        return (
+            <g>
+                <rect
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    style={{
+                        // ANTES: fill: COLORS_AREAS[index % COLORS_AREAS.length]
+                        // AHORA: Usa el fill que viene de la data
+                        fill: fill || '#7f8c8d',
+                        stroke: '#fff',
+                        strokeWidth: 2,
+                    }}
+                />
+                {depth === 1 && (
+                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
+                        {name}
+                    </text>
+                )}
+            </g>
+        );
+    };
+
     useEffect(() => {
         const fetchActividades = async () => {
             try {
                 const res = await api.get('/ver-actividades');
                 const actividades = res.data.data;
+                setActividadesRaw(actividades); // Guardamos para useMemo
 
                 setTotalActividades(actividades.length);
-
-                const pendientes = actividades.filter(act => act.estado !== 'Finalizada');
-                setActividadesPendientes(pendientes.length);
+                setActividadesPendientes(actividades.filter(act => act.estado !== 'Finalizada').length);
 
                 const resumen = actividades.reduce((acc, act) => {
                     acc[act.estado] = (acc[act.estado] || 0) + 1;
@@ -46,12 +100,24 @@ export const VistaPrincipal = () => {
                 }, {});
                 setResumenEstados(resumen);
 
-                const resumenPorArea = actividades.reduce((acc, act) => {
+                const porArea = actividades.reduce((acc, act) => {
                     const nombreArea = act.area?.nombre || 'Sin área';
                     acc[nombreArea] = (acc[nombreArea] || 0) + 1;
                     return acc;
                 }, {});
-                setResumenAreas(resumenPorArea);
+                setResumenAreas(porArea);
+
+                const finalizadas = actividades.filter(act => act.estado === 'Finalizada');
+                const aTiempo = finalizadas.filter(act => act.minutos_ejecutados <= act.minutos_planeados).length;
+                const conRetraso = finalizadas.filter(act => act.minutos_ejecutados > act.minutos_planeados).length;
+                const totalFin = aTiempo + conRetraso;
+
+                setStatsCumplimiento({
+                    aTiempo,
+                    conRetraso,
+                    pctATiempo: totalFin > 0 ? ((aTiempo / totalFin) * 100).toFixed(1) : 0,
+                    pctConRetraso: totalFin > 0 ? ((conRetraso / totalFin) * 100).toFixed(1) : 0
+                });
 
             } catch (error) {
                 console.error("Error al cargar actividades:", error);
@@ -59,36 +125,119 @@ export const VistaPrincipal = () => {
                 setLoading(false);
             }
         };
-
         fetchActividades();
     }, []);
 
-    if (loading) return <p>Cargando dashboard...</p>;
+    const [coloresAreas, setColoresAreas] = useState({});
 
-    // Formateo de datos para Recharts
-    const dataEstados = Object.entries(resumenEstados).map(([estado, cantidad]) => ({
-        name: estado.replace("_", " "),
-        cantidad,
-    }));
+    useEffect(() => {
+        const cargarColores = async () => {
+            try {
+                const response = await api.get('/ver-areas');
+                // Extraemos el array 'data' si viene paginado, si no, usamos el response.data directamente
+                const areasArray = Array.isArray(response.data) ? response.data : response.data.data;
 
-    const dataAreas = Object.entries(resumenAreas).map(([area, cantidad]) => ({
-        name: area,
-        cantidad,
-    }));
+                const mapa = {};
+                areasArray.forEach(area => {
+                    mapa[area.id] = area.color;
+                });
+                setMapaAreas(mapa);
+            } catch (error) {
+                console.error("Error cargando colores de áreas", error);
+            }
+        };
+    }, []);
+
+    // --- MEMORIZACIÓN DE DATOS (Evita parpadeos por cronómetro) ---
+
+    const dataEstados = useMemo(() => {
+        return Object.entries(resumenEstados).map(([estado, cantidad]) => ({
+            name: estado.replace("_", " "),
+            cantidad,
+            porcentaje: totalActividades > 0 ? ((cantidad / totalActividades) * 100).toFixed(1) : 0
+        }));
+    }, [resumenEstados, totalActividades]);
+
+    const dataAreas = useMemo(() => {
+        if (actividadesRaw.length === 0) return [];
+
+        const agrupado = actividadesRaw.reduce((acc, act) => {
+            const areaId = act.area_id;
+            const nombreArea = act.area?.nombre || 'Sin área';
+
+            if (!acc[nombreArea]) {
+                acc[nombreArea] = {
+                    cantidad: 0,
+                    // Buscamos el color en tu constante usando el ID
+                    fill: COLORES_POR_AREA[areaId] || "#7f8c8d"
+                };
+            }
+            acc[nombreArea].cantidad += 1;
+            return acc;
+        }, {});
+
+        return Object.entries(agrupado).map(([name, info]) => ({
+            name,
+            cantidad: info.cantidad,
+            fill: info.fill,
+            porcentaje: totalActividades > 0 ? ((info.cantidad / totalActividades) * 100).toFixed(1) : 0
+        }));
+    }, [actividadesRaw, totalActividades]);
+
+    const memoComparativa = useMemo(() => {
+        return actividadesRaw.slice(-10).map(act => {
+            const planeados = act.minutos_planeados || 0;
+            const ejecutados = act.minutos_ejecutados || 0;
+            const extra = ejecutados > planeados ? ejecutados - planeados : 0;
+            const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+            return {
+                name: act.nombre.substring(0, 30) + '...',
+                planeados, cumplidos, extra,
+                porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+            };
+        });
+    }, [actividadesRaw]);
+
+
+
+    const miArea = "Desarrollo";
+
+    const dataTreemap = useMemo(() => {
+        const ajenas = actividadesRaw.filter(act => act.area?.nombre?.toUpperCase() !== "DESARROLLO");
+
+        const agrupado = ajenas.reduce((acc, act) => {
+            const nombreArea = act.area?.nombre || 'OTRO';
+            const areaId = act.area_id;
+
+            if (!acc[nombreArea]) {
+                acc[nombreArea] = {
+                    size: 0,
+                    fill: COLORES_POR_AREA[areaId] || "#94a3b8"
+                };
+            }
+            acc[nombreArea].size += 1;
+            return acc;
+        }, {});
+
+        return Object.entries(agrupado).map(([name, info]) => ({
+            name,
+            size: info.size,
+            fill: info.fill
+        }));
+    }, [actividadesRaw]);
+
+    if (loading) return <div className="loading-container"><p>Cargando dashboard...</p></div>;
+
 
     return (
         <div className="parent">
             <div className="navbar"><Navbar /></div>
             <div className="sidebar"><Sidebar /></div>
 
-            {/* --- SECCIÓN CRONÓMETRO (Conectada al Contexto) --- */}
             <div className="registro-tiempo">
                 <h4 className='tiempo-principal'>Seguimiento de tiempo</h4>
                 <div>
-                    <div className='cronometro'>
-                        {tiempoTranscurrido}
-                    </div>
-
+                    <div className='cronometro'>{tiempoTranscurrido}</div>
                     {!jornadaActiva ? (
                         <button className='entrada' onClick={handleEntrada}>
                             <span>Iniciar Entrada</span>
@@ -101,7 +250,6 @@ export const VistaPrincipal = () => {
                 </div>
             </div>
 
-            {/* --- CARDS --- */}
             <div className="cards">
                 <div className="tiempo-hoy">
                     <h4 className='titulo-cards'>Total actividades</h4>
@@ -119,7 +267,6 @@ export const VistaPrincipal = () => {
                 </div>
             </div>
 
-            {/* --- TABLAS Y GRÁFICAS (Se mantienen igual) --- */}
             <div className="actividades">
                 <div className="tabla">
                     <h2>Mis actividades</h2>
@@ -137,7 +284,7 @@ export const VistaPrincipal = () => {
                         </tbody>
                     </table>
                 </div>
-                {/* ... (resto de las tablas y gráficas) ... */}
+
                 <div className="tabla-2 tabla-scroll">
                     <h2>Actividades por área</h2>
                     <table className="tabla-resumen">
@@ -161,28 +308,51 @@ export const VistaPrincipal = () => {
                     <h3>Actividades por Estado</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={dataEstados}>
-                            <CartesianGrid strokeDasharray="3 3" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="cantidad" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                            <YAxis
+                                allowDecimals={false}
+                                domain={[0, 'dataMax + 1']}
+                                tickCount={4}
+                            />
+
+                            <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.porcentaje}%)`, "Cantidad"]} />
+
+                            <Bar dataKey="cantidad" fill="#6366f1" radius={[8, 8, 0, 0]} isAnimationActive={false}>
+                                <LabelList
+                                    dataKey="porcentaje"
+                                    position="top"
+                                    offset={10} // 2. Añade un offset para que no pegue a la barra
+                                    formatter={(val) => `${val}%`}
+                                    style={{
+                                        fill: '#6366f1',
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        visibility: 'visible' // Fuerza la visibilidad
+                                    }}
+                                />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+
                 <div className="grafica-2">
-                    <h3>Actividades por Área</h3>
+                    <h3>Distribución por Área</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
                                 data={dataAreas}
                                 dataKey="cantidad"
                                 nameKey="name"
-                                cx="50%" cy="50%"
-                                outerRadius={100}
-                                label
+                                isAnimationActive={false}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={80}
+                                label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}
                             >
                                 {dataAreas.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    // Aquí está el cambio clave: entry.fill
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
                             <Tooltip />
@@ -190,8 +360,66 @@ export const VistaPrincipal = () => {
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
-            </div>
 
+                {/* Cards de Cumplimiento (Div corregido) */}
+                <div className="cumplimiento-stats">
+                    <div className="stat-card card-success">
+                        <h5>Cumplidas a Tiempo</h5>
+                        <p>{statsCumplimiento.aTiempo} <span>({statsCumplimiento.pctATiempo}%)</span></p>
+                    </div>
+                    <div className="stat-card card-danger">
+                        <h5>Excedieron Tiempo</h5>
+                        <p>{statsCumplimiento.conRetraso} <span>({statsCumplimiento.pctConRetraso}%)</span></p>
+                    </div>
+                </div>
+
+                <div className="grafica-comparativa">
+                    <h3>Comparativa de Tiempos (Últimas 10 actividades)</h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={memoComparativa}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" />
+                            <YAxis label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="planeados" fill="#127fa0ff" name="Meta Planeada" isAnimationActive={false}>
+                                {/*                                 
+                                <LabelList
+                                    dataKey="porcentajeCumplimiento"
+                                    position="insideTop"
+                                    formatter={(val) => `${val}%`}
+                                    style={{ fill: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                                /> */}
+                            </Bar>
+
+                            <Bar dataKey="cumplidos" stackId="a" fill="#22c55e" name="Cumplidos" isAnimationActive={false}>
+                                <LabelList dataKey="porcentajeCumplimiento" position="insideTop" formatter={(val) => `${val}%`} style={{ fill: '#fff', fontSize: '11px', fontWeight: 'bold' }} />
+                            </Bar>
+
+                            <Bar dataKey="extra" stackId="a" fill="#ef4444" name="Minutos Extra" isAnimationActive={false}>
+                                <LabelList dataKey="extra" position="top" formatter={(val) => val > 0 ? `+${val}m` : ''} style={{ fill: '#ef4444', fontSize: '12px' }} />
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div className="grafica-ajena treemap-container">
+                    <h3>Distribución de Tareas Ajenas </h3>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <Treemap
+                            data={dataTreemap}
+                            dataKey="size"
+                            aspectRatio={4 / 3}
+                            content={<CustomizedContent />} // Tu componente ahora maneja el color
+                        >
+                            <Tooltip
+                                contentStyle={{ borderRadius: '8px', border: 'none' }}
+                                formatter={(value) => [`${value} Actividades`, 'Cantidad']}
+                            />
+                        </Treemap>
+                    </ResponsiveContainer>
+                </div>
+            </div>
             <div className="footer"><Version /></div>
         </div>
     );
@@ -209,370 +437,428 @@ export const VistaPrincipal = () => {
 
 
 
-// import { useEffect, useState } from 'react';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { useEffect, useMemo, useState } from 'react';
 // import { Link } from 'react-router-dom';
 // import api from "../../services/api";
-// import Swal from 'sweetalert2';
-// import { useNavigate } from 'react-router-dom';
+// import { useAuth } from '../../context/AuthContext';
 // import './styles/VistaPrincipal.css';
 // import {
-//     BarChart,
-//     Bar,
-//     XAxis,
-//     YAxis,
-//     Tooltip,
-//     CartesianGrid,
-//     ResponsiveContainer,
-//     PieChart,
-//     Pie,
-//     Cell,
-//     Legend
+//     BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+//     ResponsiveContainer, PieChart, Pie, Cell, Legend,
+//     LabelList,
+//     RadarChart,
+//     PolarGrid,
+//     PolarAngleAxis,
+//     PolarRadiusAxis,
+//     Radar,
+//     Treemap
 // } from "recharts";
 // import { Sidebar } from '../../components/Sidebar';
 // import { Navbar } from '../../components/Navbar';
 // import { Version } from '../../components/Version';
-// // import { Version } from '../../components/Version';
-
 
 // export const VistaPrincipal = () => {
-//     const [jornadaActiva, setJornadaActiva] = useState(false);
-//     const [horaInicio, setHoraInicio] = useState(null);
-//     const [tiempoTranscurrido, setTiempoTranscurrido] = useState("00:00:00");
+//     const {
+//         jornadaActiva,
+//         tiempoTranscurrido,
+//         handleEntrada,
+//         handleSalida
+//     } = useAuth();
+
+//     // ESTADOS
 //     const [loading, setLoading] = useState(true);
-//     const navigate = useNavigate();
-//     const [balance, setBalance] = useState(null);
+//     const [actividadesRaw, setActividadesRaw] = useState([]); // Guardamos la data bruta para los memos
 //     const [totalActividades, setTotalActividades] = useState(0);
 //     const [actividadesPendientes, setActividadesPendientes] = useState(0);
 //     const [resumenEstados, setResumenEstados] = useState({});
 //     const [resumenAreas, setResumenAreas] = useState({});
+//     const [statsCumplimiento, setStatsCumplimiento] = useState({
+//         aTiempo: 0, conRetraso: 0, pctATiempo: 0, pctConRetraso: 0
+//     });
 
 //     const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6"];
+//     const COLORS_AREAS = [
+//         '#f59e0b', '#127fa0', '#22c55e', '#ef4444', '#8b5cf6',
+//         '#ec4899', '#06b6d4', '#f97316', '#10b981', '#6366f1'
+//     ];
 
+//     const CustomizedContent = (props) => {
+//         const { x, y, width, height, index, name, depth } = props;
 
+//         // Asigna un color basado en el índice para que no se repitan seguidos
+//         const fillColor = COLORS_AREAS[index % COLORS_AREAS.length];
 
-
-
+//         return (
+//             <g>
+//                 <rect
+//                     x={x}
+//                     y={y}
+//                     width={width}
+//                     height={height}
+//                     style={{
+//                         fill: fillColor, // 👈 Color dinámico aplicado
+//                         stroke: '#fff',
+//                         strokeWidth: 2 / (depth + 1),
+//                         strokeOpacity: 1,
+//                     }}
+//                 />
+//                 {/* Solo mostramos texto si hay espacio suficiente */}
+//                 {width > 60 && height > 30 && (
+//                     <text
+//                         x={x + width / 2}
+//                         y={y + height / 2}
+//                         textAnchor="middle"
+//                         dominantBaseline="middle" // 👈 Centrado vertical exacto
+//                         fill="#fff"
+//                         fontSize={11}
+//                         fontWeight="600"
+//                         style={{ pointerEvents: 'none' }} // Evita interferir con el Tooltip
+//                     >
+//                         {name}
+//                     </text>
+//                 )}
+//             </g>
+//         );
+//     };
 
 //     useEffect(() => {
 //         const fetchActividades = async () => {
 //             try {
 //                 const res = await api.get('/ver-actividades');
 //                 const actividades = res.data.data;
+//                 setActividadesRaw(actividades); // Guardamos para useMemo
 
-//                 // 🔹 Total general
 //                 setTotalActividades(actividades.length);
+//                 setActividadesPendientes(actividades.filter(act => act.estado !== 'Finalizada').length);
 
-//                 // 🔹 Pendientes (todas menos Finalizada)
-//                 const pendientes = actividades.filter(act =>
-//                     act.estado !== 'Finalizada'
-//                 );
-//                 setActividadesPendientes(pendientes.length);
-
-//                 // 🔹 Agrupar por estado
 //                 const resumen = actividades.reduce((acc, act) => {
 //                     acc[act.estado] = (acc[act.estado] || 0) + 1;
 //                     return acc;
 //                 }, {});
-
 //                 setResumenEstados(resumen);
-//                 const resumenPorArea = actividades.reduce((acc, act) => {
+
+//                 const porArea = actividades.reduce((acc, act) => {
 //                     const nombreArea = act.area?.nombre || 'Sin área';
 //                     acc[nombreArea] = (acc[nombreArea] || 0) + 1;
 //                     return acc;
 //                 }, {});
+//                 setResumenAreas(porArea);
 
-//                 setResumenAreas(resumenPorArea);
+//                 const finalizadas = actividades.filter(act => act.estado === 'Finalizada');
+//                 const aTiempo = finalizadas.filter(act => act.minutos_ejecutados <= act.minutos_planeados).length;
+//                 const conRetraso = finalizadas.filter(act => act.minutos_ejecutados > act.minutos_planeados).length;
+//                 const totalFin = aTiempo + conRetraso;
+
+//                 setStatsCumplimiento({
+//                     aTiempo,
+//                     conRetraso,
+//                     pctATiempo: totalFin > 0 ? ((aTiempo / totalFin) * 100).toFixed(1) : 0,
+//                     pctConRetraso: totalFin > 0 ? ((conRetraso / totalFin) * 100).toFixed(1) : 0
+//                 });
 
 //             } catch (error) {
 //                 console.error("Error al cargar actividades:", error);
-//             }
-//         };
-
-//         fetchActividades();
-//     }, []);
-
-
-//     // 1. Verificar estado al cargar
-//     useEffect(() => {
-//         const verificarEstado = async () => {
-//             try {
-//                 const res = await api.get('/jornada/estado');
-//                 if (res.data.jornada_activa) {
-//                     setJornadaActiva(true);
-//                     setHoraInicio(new Date(res.data.datos.hora_entrada));
-//                 }
-//             } catch (error) {
-//                 console.error("Error al obtener estado");
 //             } finally {
 //                 setLoading(false);
 //             }
 //         };
-//         verificarEstado();
+//         fetchActividades();
 //     }, []);
 
-//     // 2. Lógica del Cronómetro
+//     const [coloresAreas, setColoresAreas] = useState({});
+
 //     useEffect(() => {
-//         let intervalo = null;
-
-//         if (jornadaActiva && horaInicio) {
-//             intervalo = setInterval(() => {
-//                 const ahora = new Date();
-//                 const diferenciaMs = ahora - horaInicio; // Diferencia en milisegundos
-
-//                 // Cálculos matemáticos para tiempo
-//                 const horas = Math.floor(diferenciaMs / 3600000);
-//                 const minutos = Math.floor((diferenciaMs % 3600000) / 60000);
-//                 const segundos = Math.floor((diferenciaMs % 60000) / 1000);
-
-//                 // Formatear a 00:00:00
-//                 const formato =
-//                     `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-
-//                 setTiempoTranscurrido(formato);
-//             }, 1000);
-//         } else {
-//             setTiempoTranscurrido("00:00:00");
-//             clearInterval(intervalo);
-//         }
-
-//         return () => clearInterval(intervalo); // Limpieza al desmontar
-//     }, [jornadaActiva, horaInicio]);
-
-//     const handleEntrada = async () => {
-//         try {
-//             const res = await api.post('/jornada/entrada');
-//             setHoraInicio(new Date(res.data.data.hora_entrada));
-//             setJornadaActiva(true);
-//         } catch (error) {
-//             alert("Error al iniciar jornada");
-//         }
-//     };
-
-
-//     const handleSalida = async () => {
-//         try {
-//             // PASO 1: Obtener el cálculo sin cerrar la jornada
-//             const resPreview = await api.get('/jornada/previsualizar-salida');
-//             const { tiempo_laboral, tiempo_actividades, diferencia_minutos } = resPreview.data.calculo;
-
-//             const esIncompleto = diferencia_minutos > 10; // Margen de 10 min
-
-//             // PASO 2: Mostrar el balance y preguntar qué hacer
-//             const decision = await Swal.fire({
-//                 title: 'Resumen de Jornada Actual',
-//                 html: `
-//                 <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
-//                     <p>⏱️ <b>Tiempo de trabajo:</b> ${tiempo_laboral}</p>
-//                     <p>📋 <b>Registrado en tareas:</b> ${tiempo_actividades}</p>
-//                     <hr>
-//                     <p style="color: ${esIncompleto ? '#d32f2f' : '#28a745'}; text-align: center; font-size: 1.1em;">
-//                         <b>Diferencia: ${diferencia_minutos} minutos</b><br>
-//                         <small>${esIncompleto ? '⚠️ Tienes tiempo sin justificar.' : '✅ ¡Tu registro está al día!'}</small>
-//                     </p>
-//                 </div>
-//                 <p style="margin-top: 15px;">¿Deseas finalizar tu jornada y cerrar sesión ahora?</p>
-//             `,
-//                 icon: esIncompleto ? 'warning' : 'success',
-//                 showCancelButton: true,
-//                 confirmButtonText: 'Sí, finalizar y salir',
-//                 cancelButtonText: 'No, completar registros',
-//                 confirmButtonColor: esIncompleto ? '#f39c12' : '#28a745',
-//                 cancelButtonColor: '#3085d6',
-//                 allowOutsideClick: false
-//             });
-
-//             // PASO 3: Si confirma, llamar al endpoint de salida real
-//             if (decision.isConfirmed) {
-//                 const resFinal = await api.post('/jornada/salida');
-//                 if (resFinal.data.success) {
-//                     await Swal.fire({
-//                         title: '¡Sesión Cerrada!',
-//                         text: 'Tu jornada ha sido registrada. ¡Hasta mañana!',
-//                         icon: 'success',
-//                         timer: 2000,
-//                         showConfirmButton: false
-//                     });
-
-//                     localStorage.removeItem('token');
-//                     window.location.href = '/login';
-//                 }
+//         const cargarColores = async () => {
+//             try {
+//                 const response = await api.get('/ver-areas');
+//                 // Creamos un objeto de búsqueda rápida: { "Nombre Área": "#Color" }
+//                 const mapaColores = {};
+//                 response.data.forEach(area => {
+//                     mapaColores[area.nombre] = area.color; // Ajusta 'area.color' según tu BD
+//                 });
+//                 setColoresAreas(mapaColores);
+//             } catch (error) {
+//                 console.error("Error cargando colores de áreas", error);
 //             }
-//         } catch (error) {
-//             Swal.fire('Error', 'No se pudo obtener el balance actual', 'error');
-//         }
-//     };
-//     const cargarBalance = async () => {
-//         try {
-//             const res = await api.get('/jornada/balance');
-//             setBalance(res.data.data);
-//         } catch (error) {
-//             console.error("Error al cargar balance");
-//         }
-//     };
+//         };
+//         cargarColores();
+//     }, []);
 
-//     if (loading) return <p>Cargando...</p>;
+//     // --- MEMORIZACIÓN DE DATOS (Evita parpadeos por cronómetro) ---
 
-//     const dataEstados = Object.entries(resumenEstados).map(([estado, cantidad]) => ({
-//         name: estado.replace("_", " "),
-//         cantidad,
-//     }));
+//     const dataEstados = useMemo(() => {
+//         return Object.entries(resumenEstados).map(([estado, cantidad]) => ({
+//             name: estado.replace("_", " "),
+//             cantidad,
+//             porcentaje: totalActividades > 0 ? ((cantidad / totalActividades) * 100).toFixed(1) : 0
+//         }));
+//     }, [resumenEstados, totalActividades]);
 
-//     const dataAreas = Object.entries(resumenAreas).map(([area, cantidad]) => ({
-//         name: area,
-//         cantidad,
-//     }));
+//     const dataAreas = useMemo(() => {
+//         return Object.entries(resumenAreas).map(([area, cantidad]) => ({
+//             name: area,
+//             cantidad,
+//             porcentaje: totalActividades > 0 ? ((cantidad / totalActividades) * 100).toFixed(1) : 0
+//         }));
+//     }, [resumenAreas, totalActividades]);
+
+//     const memoComparativa = useMemo(() => {
+//         return actividadesRaw.slice(-10).map(act => {
+//             const planeados = act.minutos_planeados || 0;
+//             const ejecutados = act.minutos_ejecutados || 0;
+//             const extra = ejecutados > planeados ? ejecutados - planeados : 0;
+//             const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+//             return {
+//                 name: act.nombre.substring(0, 30) + '...',
+//                 planeados, cumplidos, extra,
+//                 porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+//             };
+//         });
+//     }, [actividadesRaw]);
+
+
+
+//     const miArea = "Desarrollo";
+
+//     const dataTreemap = useMemo(() => {
+//         const ajenas = actividadesRaw.filter(act =>
+//             act.area?.nombre && act.area.nombre !== miArea
+//         );
+
+//         const agrupado = ajenas.reduce((acc, act) => {
+//             const nombreArea = act.area.nombre;
+//             acc[nombreArea] = (acc[nombreArea] || 0) + 1;
+//             return acc;
+//         }, {});
+
+//         return Object.entries(agrupado).map(([name, cantidad]) => ({
+//             name,
+//             size: cantidad,
+//             // Buscamos el color en el estado; si no existe, usamos uno por defecto
+//             fill: coloresAreas[name] || '#f59e0b'
+//         }));
+//     }, [actividadesRaw, miArea, coloresAreas]);
+
+//     if (loading) return <div className="loading-container"><p>Cargando dashboard...</p></div>;
 
 
 //     return (
-//         <>
-//             <div className="parent">
-//                 <div className="navbar">
-//                     <Navbar />
-//                 </div>
-//                 <div className="sidebar">
-//                     <Sidebar />
-//                 </div>
+//         <div className="parent">
+//             <div className="navbar"><Navbar /></div>
+//             <div className="sidebar"><Sidebar /></div>
 
-
-
-//                 <div className="registro-tiempo">
-//                     <h4 className='tiempo-principal'>Seguimiento de tiempo</h4>
-//                     <div>
-//                         {/* Visualización del Cronómetro */}
-//                         <div className='cronometro'>
-//                             {tiempoTranscurrido}
-//                         </div>
-
-//                         {!jornadaActiva ? (
-//                             <button className='entrada' onClick={handleEntrada}><span>Iniciar Entrada</span></button>
-//                         ) : (
-//                             <button className='salida' onClick={handleSalida}>Registrar Salida</button>
-//                         )}
-//                     </div>
-//                 </div>
-
-
-
-//                 <div className="cards">
-//                     <div className="tiempo-hoy">
-//                         <h4 className='titulo-cards'>Total actividades</h4>
-//                         <p>{totalActividades} actividades</p>
-//                     </div>
-//                     <div className="actv-pendientes">
-//                         <Link to="/actividades" style={{ textDecoration: 'none', color: 'inherit' }}>
-//                             <h4 className='titulo-cards'>Actividades pendientes</h4>
-//                             <p>{actividadesPendientes} pendientes</p>
-//                         </Link>
-//                     </div>
-//                     <div className="reporte-jornadas">
-//                         <h4 className='titulo-cards'>Reporte semanal de tiempo</h4>
-//                         <p></p>
-//                     </div>
-//                 </div>
-
-//                 <div className="actividades">
-//                     <div className="tabla">
-//                         <h2>Mis actividades</h2>
-//                         <table className="tabla-resumen">
-//                             <thead>
-//                                 <tr>
-//                                     <th>Estado</th>
-//                                     <th>Cantidad</th>
-//                                 </tr>
-//                             </thead>
-//                             <tbody>
-//                                 {Object.entries(resumenEstados).map(([estado, cantidad]) => (
-//                                     <tr key={estado}>
-//                                         <td>{estado.replace('_', ' ')}</td>
-//                                         <td>{cantidad}</td>
-//                                     </tr>
-//                                 ))}
-//                             </tbody>
-//                         </table>
-//                     </div>
-//                     <div className="tabla-2 tabla-scroll">
-//                         <h2>Actividades por área</h2>
-//                         <table className="tabla-resumen">
-//                             <thead>
-//                                 <tr>
-//                                     <th>Área</th>
-//                                     <th>Cantidad</th>
-//                                 </tr>
-//                             </thead>
-//                             <tbody>
-//                                 {Object.entries(resumenAreas).map(([area, cantidad]) => (
-//                                     <tr key={area}>
-//                                         <td>{area}</td>
-//                                         <td>{cantidad}</td>
-//                                     </tr>
-//                                 ))}
-//                             </tbody>
-//                         </table>
-//                     </div>
-//                 </div>
-
-//                 <div className="grafica">
-//                     <div className="grafica-1">
-//                         <h3>Actividades por Estado</h3>
-//                         <ResponsiveContainer width="100%" height={300}>
-//                             <BarChart data={dataEstados}>
-//                                 <CartesianGrid strokeDasharray="3 3" />
-//                                 <XAxis dataKey="name" />
-//                                 <YAxis />
-//                                 <Tooltip />
-//                                 <Bar dataKey="cantidad" fill="#6366f1" radius={[8, 8, 0, 0]} />
-//                             </BarChart>
-//                         </ResponsiveContainer>
-//                     </div>
-//                     <div className="grafica-2">
-//                         <h3>Actividades por Área</h3>
-//                         <ResponsiveContainer width="100%" height={300}>
-//                             <PieChart>
-//                                 <Pie
-//                                     data={dataAreas}
-//                                     dataKey="cantidad"
-//                                     nameKey="name"
-//                                     cx="50%"
-//                                     cy="50%"
-//                                     outerRadius={100}
-//                                     label
-//                                 >
-//                                     {dataAreas.map((entry, index) => (
-//                                         <Cell
-//                                             key={`cell-${index}`}
-//                                             fill={COLORS[index % COLORS.length]}
-//                                         />
-//                                     ))}
-//                                 </Pie>
-//                                 <Tooltip />
-//                                 <Legend />
-//                             </PieChart>
-//                         </ResponsiveContainer>
-
-//                     </div>
-//                 </div>
-//                 <div className="footer">
-//                     <Version />
+//             <div className="registro-tiempo">
+//                 <h4 className='tiempo-principal'>Seguimiento de tiempo</h4>
+//                 <div>
+//                     <div className='cronometro'>{tiempoTranscurrido}</div>
+//                     {!jornadaActiva ? (
+//                         <button className='entrada' onClick={handleEntrada}>
+//                             <span>Iniciar Entrada</span>
+//                         </button>
+//                     ) : (
+//                         <button className='salida' onClick={handleSalida}>
+//                             Registrar Salida
+//                         </button>
+//                     )}
 //                 </div>
 //             </div>
-//         </>
+
+//             <div className="cards">
+//                 <div className="tiempo-hoy">
+//                     <h4 className='titulo-cards'>Total actividades</h4>
+//                     <p>{totalActividades} actividades</p>
+//                 </div>
+//                 <div className="actv-pendientes">
+//                     <Link to="/actividades" style={{ textDecoration: 'none', color: 'inherit' }}>
+//                         <h4 className='titulo-cards'>Actividades pendientes</h4>
+//                         <p>{actividadesPendientes} pendientes</p>
+//                     </Link>
+//                 </div>
+//                 <div className="reporte-jornadas">
+//                     <h4 className='titulo-cards'>Estado de jornada</h4>
+//                     <p>{jornadaActiva ? "🟢 En curso" : "🔴 Fuera de turno"}</p>
+//                 </div>
+//             </div>
+
+//             <div className="actividades">
+//                 <div className="tabla">
+//                     <h2>Mis actividades</h2>
+//                     <table className="tabla-resumen">
+//                         <thead>
+//                             <tr><th>Estado</th><th>Cantidad</th></tr>
+//                         </thead>
+//                         <tbody>
+//                             {Object.entries(resumenEstados).map(([estado, cantidad]) => (
+//                                 <tr key={estado}>
+//                                     <td>{estado.replace('_', ' ')}</td>
+//                                     <td>{cantidad}</td>
+//                                 </tr>
+//                             ))}
+//                         </tbody>
+//                     </table>
+//                 </div>
+
+//                 <div className="tabla-2 tabla-scroll">
+//                     <h2>Actividades por área</h2>
+//                     <table className="tabla-resumen">
+//                         <thead>
+//                             <tr><th>Área</th><th>Cantidad</th></tr>
+//                         </thead>
+//                         <tbody>
+//                             {Object.entries(resumenAreas).map(([area, cantidad]) => (
+//                                 <tr key={area}>
+//                                     <td>{area}</td>
+//                                     <td>{cantidad}</td>
+//                                 </tr>
+//                             ))}
+//                         </tbody>
+//                     </table>
+//                 </div>
+//             </div>
+
+//             <div className="grafica">
+//                 <div className="grafica-1">
+//                     <h3>Actividades por Estado</h3>
+//                     <ResponsiveContainer width="100%" height={300}>
+//                         <BarChart data={dataEstados}>
+//                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
+//                             <XAxis dataKey="name" />
+//                             <YAxis
+//                                 allowDecimals={false}
+//                                 domain={[0, 'dataMax + 1']}
+//                                 tickCount={4}
+//                             />
+
+//                             <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.porcentaje}%)`, "Cantidad"]} />
+
+//                             <Bar dataKey="cantidad" fill="#6366f1" radius={[8, 8, 0, 0]} isAnimationActive={false}>
+//                                 <LabelList
+//                                     dataKey="porcentaje"
+//                                     position="top"
+//                                     offset={10} // 2. Añade un offset para que no pegue a la barra
+//                                     formatter={(val) => `${val}%`}
+//                                     style={{
+//                                         fill: '#6366f1',
+//                                         fontSize: '12px',
+//                                         fontWeight: 'bold',
+//                                         visibility: 'visible' // Fuerza la visibilidad
+//                                     }}
+//                                 />
+//                             </Bar>
+//                         </BarChart>
+//                     </ResponsiveContainer>
+//                 </div>
+
+//                 <div className="grafica-2">
+//                     <h3>Distribución por Área</h3>
+//                     <ResponsiveContainer width="100%" height={300}>
+//                         <PieChart>
+//                             <Pie data={dataAreas} dataKey="cantidad" isAnimationActive={false} nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}>
+//                                 {dataAreas.map((entry, index) => (
+//                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+//                                 ))}
+//                             </Pie>
+//                             <Tooltip />
+//                             <Legend />
+//                         </PieChart>
+//                     </ResponsiveContainer>
+//                 </div>
+
+//                 {/* Cards de Cumplimiento (Div corregido) */}
+//                 <div className="cumplimiento-stats">
+//                     <div className="stat-card card-success">
+//                         <h5>Cumplidas a Tiempo</h5>
+//                         <p>{statsCumplimiento.aTiempo} <span>({statsCumplimiento.pctATiempo}%)</span></p>
+//                     </div>
+//                     <div className="stat-card card-danger">
+//                         <h5>Excedieron Tiempo</h5>
+//                         <p>{statsCumplimiento.conRetraso} <span>({statsCumplimiento.pctConRetraso}%)</span></p>
+//                     </div>
+//                 </div>
+
+//                 <div className="grafica-comparativa">
+//                     <h3>Comparativa de Tiempos (Últimas 10 actividades)</h3>
+//                     <ResponsiveContainer width="100%" height={400}>
+//                         <BarChart data={memoComparativa}>
+//                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
+//                             <XAxis dataKey="name" />
+//                             <YAxis label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }} />
+//                             <Tooltip />
+//                             <Legend />
+//                             <Bar dataKey="planeados" fill="#127fa0ff" name="Meta Planeada" isAnimationActive={false}>
+//                                 {/*
+//                                 <LabelList
+//                                     dataKey="porcentajeCumplimiento"
+//                                     position="insideTop"
+//                                     formatter={(val) => `${val}%`}
+//                                     style={{ fill: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+//                                 /> */}
+//                             </Bar>
+
+//                             <Bar dataKey="cumplidos" stackId="a" fill="#22c55e" name="Cumplidos" isAnimationActive={false}>
+//                                 <LabelList dataKey="porcentajeCumplimiento" position="insideTop" formatter={(val) => `${val}%`} style={{ fill: '#fff', fontSize: '11px', fontWeight: 'bold' }} />
+//                             </Bar>
+
+//                             <Bar dataKey="extra" stackId="a" fill="#ef4444" name="Minutos Extra" isAnimationActive={false}>
+//                                 <LabelList dataKey="extra" position="top" formatter={(val) => val > 0 ? `+${val}m` : ''} style={{ fill: '#ef4444', fontSize: '12px' }} />
+//                             </Bar>
+//                         </BarChart>
+//                     </ResponsiveContainer>
+//                 </div>
+
+//                 <div className="grafica-ajena treemap-container">
+//                     <h3>Distribución de Tareas Ajenas (Treemap)</h3>
+//                     <ResponsiveContainer width="100%" height={400}>
+//                         <Treemap
+//                             data={dataTreemap}
+//                             dataKey="size"
+//                             aspectRatio={4 / 3}
+//                             content={<CustomizedContent />} // Tu componente ahora maneja el color
+//                         >
+//                             <Tooltip
+//                                 contentStyle={{ borderRadius: '8px', border: 'none' }}
+//                                 formatter={(value) => [`${value} Actividades`, 'Cantidad']}
+//                             />
+//                         </Treemap>
+//                     </ResponsiveContainer>
+//                 </div>
+//             </div>
+//             <div className="footer"><Version /></div>
+//         </div>
 //     );
 // };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

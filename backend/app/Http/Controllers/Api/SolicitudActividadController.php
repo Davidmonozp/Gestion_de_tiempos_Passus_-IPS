@@ -63,7 +63,7 @@ class SolicitudActividadController extends Controller
             $jefe = User::find($actividad->asignado_por);
             if ($jefe) {
                 // Se envía la notificación que creamos al jefe
-                $jefe->notify(new SolicitudAplazamiento($solicitud));
+                $jefe->notify(new SolicitudAplazamiento($solicitud, Auth::user()));
             }
 
             $msg = 'Solicitud enviada al jefe correctamente.';

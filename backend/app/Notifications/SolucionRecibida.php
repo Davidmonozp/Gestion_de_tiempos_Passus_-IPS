@@ -11,7 +11,7 @@ class SolucionRecibida extends Notification
 {
     use Queueable;
 
-    protected $actividad;
+    public $actividad;
 
     public function __construct(Actividad $actividad)
     {
@@ -20,17 +20,26 @@ class SolucionRecibida extends Notification
 
     public function via($notifiable)
     {
-        return ['mail', 'database']; // Se envía por email y queda en la DB
+        return ['mail', 'database'];
     }
 
     public function toMail($notifiable)
     {
+        $url = url('/actividades/' . $this->actividad->id);
+
+        // Obtenemos el nombre del colaborador que entrega (asignadoA)
+        $colaborador = $this->actividad->asignadoA
+            ? ($this->actividad->asignadoA->nombre . ' ' . $this->actividad->asignadoA->apellido)
+            : 'Un colaborador';
+
         return (new MailMessage)
-            ->subject('Nueva solución por aprobar: ' . $this->actividad->nombre)
-            ->greeting('Hola, ' . $notifiable->name)
-            ->line('El colaborador ' . $this->actividad->asignadoA->name . ' ha enviado una solución.')
-            ->action('Revisar Solución', url('/actividades/' . $this->actividad->id))
-            ->line('Gracias por usar nuestro sistema de gestión.');
+            ->subject('✅ Solución Enviada: ' . $this->actividad->nombre)
+            ->view('emails.solucion_recibida', [
+                'notifiable' => $notifiable,
+                'actividad'  => $this->actividad,
+                'colaboradorNombre' => $colaborador,
+                'url'        => $url
+            ]);
     }
 
     public function toArray($notifiable)
@@ -38,6 +47,7 @@ class SolucionRecibida extends Notification
         return [
             'actividad_id' => $this->actividad->id,
             'mensaje' => 'Nueva solución enviada para: ' . $this->actividad->nombre,
+            'tipo' => 'solucion_recibida'
         ];
     }
 }
