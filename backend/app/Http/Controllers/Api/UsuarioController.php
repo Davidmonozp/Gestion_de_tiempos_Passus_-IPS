@@ -24,7 +24,7 @@ class UsuarioController extends Controller
             'tipo_documento'   => 'required|string',
             'numero_documento' => 'required|string|unique:users,numero_documento',
             'nombre_usuario'   => 'required|string|unique:users,nombre_usuario',
-            'email'            => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'password'         => 'required|string|min:6',
             'cargo'            => 'required|string',
             'rol_nombre'       => 'required|exists:roles,name',

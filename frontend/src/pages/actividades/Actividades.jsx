@@ -103,6 +103,7 @@ export const Actividades = () => {
                                                 <th>Asignado A</th>
                                                 <th>Minutos planeados</th>
                                                 <th>Minutos ejecutados</th>
+                                                <th>Area</th>
                                                 <th>Acciones</th>
                                             </tr>
                                         </thead>
@@ -119,6 +120,7 @@ export const Actividades = () => {
                                                     <td>{act.asignado_a?.nombre} {act.asignado_a?.apellido}</td>
                                                     <td>{act.minutos_planeados}</td>
                                                     <td>{act.minutos_ejecutados}</td>
+                                                    <td>{act.area?.nombre || act.area || 'N/A'}</td>
                                                     <td>
                                                         <Link to={`/ver-actividad/${act.id}`}>
                                                             <i className="fa-solid fa-eye"></i>

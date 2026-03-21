@@ -7,9 +7,9 @@ import { VerActividad } from "../pages/actividades/VerActividad";
 import { VistaPrincipal } from "../pages/actividades/VistaPrincipal";
 import { Logout } from "../components/Logout";
 import { ForceLogout } from "../components/ForceLogout";
-import { CrearUsuario } from "../pages/usuarios/CrearUsuario";
-import { VerSoluciones } from "../pages/actividades/VerSoluciones";
 import CalendarioActividades from "../pages/actividades/CalendarioActividades";
+import { ListarUsuarios } from "../pages/usuarios/ListarUsuarios";
+import CrearUsuario from "../pages/usuarios/CrearUsuario";
 
 const Dashboard = () => <h1>Dashboard</h1>;
 
@@ -33,6 +33,7 @@ const AppRouter = () => {
           <Route path="/vista-principal" element={<VistaPrincipal />} />
           <Route path="/crear-usuario" element={<CrearUsuario />} />
           <Route path="/calendario" element={<CalendarioActividades />} />
+          <Route path="/usuarios" element={<ListarUsuarios />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/force-logout" replace />} />

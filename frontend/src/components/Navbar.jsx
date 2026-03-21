@@ -10,6 +10,7 @@ export const Navbar = () => {
     const { user, logout, tiempoTranscurrido, jornadaActiva } = useAuth();
     const navigate = useNavigate();
     const [open, setOpen] = useState(false);
+    const [openConfig, setOpenConfig] = useState(false);
     const [openUser, setOpenUser] = useState(false);
     const location = useLocation();
 
@@ -30,10 +31,10 @@ export const Navbar = () => {
                 </Link>
 
                 {/* 3. Renderizamos el timer si la jornada está activa */}
-              {mostrarTimer && (
-                    <FloatingTimer 
-                        tiempoTranscurrido={tiempoTranscurrido} 
-                        jornadaActiva={jornadaActiva} 
+                {mostrarTimer && (
+                    <FloatingTimer
+                        tiempoTranscurrido={tiempoTranscurrido}
+                        jornadaActiva={jornadaActiva}
                     />
                 )}
 
@@ -47,23 +48,53 @@ export const Navbar = () => {
                 <div className={`navbar-links ${open ? "show" : ""}`}>
                     <Link to="/vista-principal" onClick={closeMenu}>Inicio</Link>
                     <Link to="/actividades" onClick={closeMenu}>Actividades</Link>
-                    <Link to="/calendario" onClick={closeMenu}>Calendario</Link>
-                    <Link to="/vista-principal" onClick={closeMenu}>Reportes</Link>
-                    <Link to="/vista-principal" onClick={closeMenu}>Configuración</Link>
-
-                    <Notificationes />
-
+                    {/* <Link to="/calendario" onClick={closeMenu}>Calendario</Link> */}
+                    {/* <Link to="/vista-principal" onClick={closeMenu}>Reportes</Link> */}
+                    {/* --- DROPDOWN DE CONFIGURACIÓN --- */}
                     <div className="user-dropdown">
                         <button
                             className="user-button"
-                            onClick={() => setOpenUser(!openUser)}
+                            onClick={() => {
+                                setOpenConfig(!openConfig);
+                                setOpenUser(false);
+                            }}
                         >
-                            {user?.nombre_usuario} ▾
+                            Configuración ▾
+                        </button>
+
+                        {openConfig && (
+                            <div className="user-menu">
+                                <Link
+                                    to="/usuarios"
+                                    className="menu-item"
+                                    onClick={() => {
+                                        setOpenConfig(false);
+                                        closeMenu();
+                                    }}
+                                >
+                                    Usuarios
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+
+                    <Notificationes />
+
+                    {/* --- DROPDOWN DE USUARIO --- */}
+                    <div className="user-dropdown">
+                        <button
+                            className="user-button"
+                            onClick={() => {
+                                setOpenUser(!openUser);
+                                setOpenConfig(false);
+                            }}
+                        >
+                            {`${user?.nombre} ${user?.apellido}`} ▾
                         </button>
 
                         {openUser && (
                             <div className="user-menu">
-                                <button onClick={handleLogout}>
+                                <button className="menu-item" onClick={handleLogout}>
                                     Cerrar sesión
                                 </button>
                             </div>

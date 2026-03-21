@@ -1,0 +1,411 @@
+.container-usuarios {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: repeat(1, 1fr);
+    gap: 18px;
+    margin-top: 8px;
+}
+
+
+.content-container {
+    height: 100%;
+    overflow-y: auto;
+    /* El scroll solo sucede en el contenido, no en el sidebar */
+    padding: 24px;
+    background-color: #f8fafc;
+    /* Color de fondo sutil para que resalten las cards */
+}
+
+.usuarios-view {
+    padding: 2rem;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #06547d;
+}
+
+.user-card-content p {
+    color: #06547d;
+}
+
+.user-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    /* Alinea los botones a la derecha */
+    gap: 0px;
+    /* Espacio uniforme entre botones */
+    margin-top: 0px;
+    border-top: 1px solid #ddd;
+    /* Línea divisora muy tenue */
+}
+
+/* Estilo base para todos los botones de icono */
+.btn-icon-view,
+.btn-icon-edit,
+.btn-icon-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    /* Bordes ligeramente redondeados */
+    background: #f8fafc;
+    /* Fondo neutro muy claro */
+    color: #64748b;
+    /* Gris azulado profesional */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    /* Animación suave */
+    font-size: 0.95rem;
+    margin-top: 5px;
+}
+
+/* Efectos Hover Individuales */
+
+/* Vista: Azul sutil */
+.btn-icon-view:hover {
+    background-color: #3b83f633;
+    color: #3b82f6;
+    transform: translateY(-2px);
+}
+
+/* Editar: Verde o el color de tu área (usando la variable anterior) */
+.btn-icon-edit:hover {
+    background-color: #0093402d;
+    color: var(--area-color, #10b981);
+    transform: translateY(-2px);
+}
+
+/* Eliminar: Rojo suave */
+.btn-icon-delete:hover {
+    background-color: #ff313138;
+    color: #ef4444;
+    transform: translateY(-2px);
+}
+
+/* Efecto al hacer clic (Active) */
+.user-card-actions button:active {
+    transform: scale(0.95);
+}
+
+.areas-list {
+    margin-top: 12px;
+    /* Ajusta este valor según cuánto quieras que baje */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+}
+
+.area-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    /* Un fondo sutil del mismo color del área queda muy bien */
+    background-color: #ebebeb;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* Controles */
+.view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    margin-left: 10px;
+    width: 100%;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.view-switcher {
+    display: flex;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.view-switcher button {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: #64748b;
+    transition: all 0.3s;
+}
+
+.view-switcher button.active {
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-new-user {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    /* Tamaño perfecto para un botón de acción */
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    /* Bordes suaves (puedes usar 50% para que sea circular) */
+    background-color: #e2e8f0;
+    color: #00933f;
+    /* El color verde de tu marca */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    /* Sombra suave para dar profundidad */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.1rem;
+}
+
+.btn-new-user:hover {
+    background-color: #00933f;
+    /* Se invierte el color al pasar el mouse */
+    color: #ffffff;
+    transform: translateY(-3px);
+    /* Pequeño salto hacia arriba */
+    box-shadow: 0 6px 15px rgba(0, 147, 63, 0.2);
+    /* Sombra con el color de la marca */
+}
+
+.btn-new-user:active {
+    transform: scale(0.92);
+    /* Efecto de clic (se encoge un poco) */
+}
+
+/* Grid Cards */
+.users-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(299px, 1fr));
+    gap: 20px;
+}
+
+.user-card {
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 0px 3px #00933f, 0 4px 10px rgba(0, 0, 0, 0.05);
+    /* border-top: 5px solid #00933f; */
+    border: solid 3px white;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 300px;
+    max-width: 340px;
+}
+
+.user-card:hover {
+    transform: translateY(-5px);
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.info-item {
+    word-break: break-all;
+    /* Rompe el texto en cualquier carácter */
+    overflow-wrap: break-word;
+    /* Asegura que palabras largas no se salgan */
+    display: block;
+    font-size: 0.85rem;
+    /* Puedes bajar un poco el tamaño para ganar espacio */
+    line-height: 1.2;
+    color: #5c5c5c;
+}
+
+/* Tabla Moderna */
+.users-table-wrapper {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table th {
+    background: #f1f5f9;
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.modern-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.td-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.td-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.email-text {
+    margin-top: 5px;
+    color: #0087cd;
+}
+
+/* Badges y Pills */
+.badge-admin {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.badge-jefe {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.badge-usuario {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.role-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.chip {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+}
+
+.chip-gold {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #b45309;
+}
+
+.chip-blue {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
+/* Botones de acción */
+.action-btn {
+    border: none;
+    background: transparent;
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+.action-btn.view {
+    color: #64748b;
+}
+
+.action-btn.edit {
+    color: #3b82f6;
+}
+
+.action-btn.delete {
+    color: #ef4444;
+}
+
+@media (min-width: 200px) and (max-width: 500px) {
+    .container-usuarios {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .sidebar-container {
+        grid-column: 1;
+        width: 60px;
+        padding: 9px;
+    }
+
+    .logo {
+        font-size: 7px;
+    }
+
+    .usuarios-view {
+        padding: 0;
+        margin-bottom: 10px;
+    }
+}
+
+@media (min-width: 501px) and (max-width: 820px) {
+    .sidebar-container {
+        grid-column: 1;
+        width: 95px;
+        padding: 20px;
+    }
+
+    .users-cards-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}

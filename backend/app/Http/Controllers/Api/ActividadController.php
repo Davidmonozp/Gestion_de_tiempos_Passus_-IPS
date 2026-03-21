@@ -121,6 +121,85 @@ class ActividadController extends Controller
     }
 
 
+    public function show($id)
+    {
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            $actividad = Actividad::with([
+                'area',
+                'asignadoA',
+                'asignadoPor',
+                'aprobadaPor',
+                'evidencias',
+                'revisiones.usuario',
+                'evidencias.user',
+                'solicitudes.solicitante',
+                'solicitudes.revisor'
+            ])->findOrFail($id);
+
+            // 👑 Administrador puede ver todo
+            if ($user->hasRole('Administrador')) {
+                return response()->json($actividad);
+            }
+
+            // 👔 JefeInmediato solo si pertenece a su área
+            if ($user->hasRole('JefeInmediato')) {
+                if ($user->areas->pluck('id')->contains($actividad->area_id)) {
+                    return response()->json($actividad);
+                }
+            }
+
+            // 👤 Usuario solo si está asignada a él
+            if ($user->hasRole('Usuario') && $actividad->asignado_a == $user->id) {
+                return response()->json($actividad);
+            }
+
+
+            // ❌ Si no cumple nada
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permiso para ver esta actividad'
+            ], 403);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener la actividad',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    //    public function show($id)
+    //     {
+    //         try {
+    //             // Buscar actividad por ID con relaciones
+    //             $actividad = Actividad::with([
+    //                 'area',
+    //                 'asignadoA',
+    //                 'asignadoPor',
+    //                 'aprobadaPor',
+    //                 'evidencias'
+    //             ])->findOrFail($id);
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'data' => $actividad
+    //             ], 200);
+    //         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Actividad no encontrada'
+    //             ], 404);
+    //         } catch (\Exception $e) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Error al obtener la actividad',
+    //                 'error' => $e->getMessage()
+    //             ], 500);
+    //         }
+    //     }
 
     public function store(Request $request)
     {
@@ -241,85 +320,6 @@ class ActividadController extends Controller
         }
     }
 
-    public function show($id)
-    {
-        try {
-            /** @var \App\Models\User $user */
-            $user = Auth::user();
-
-            $actividad = Actividad::with([
-                'area',
-                'asignadoA',
-                'asignadoPor',
-                'aprobadaPor',
-                'evidencias',
-                'revisiones.usuario',
-                'evidencias.user',
-                'solicitudes.solicitante',
-                'solicitudes.revisor'
-            ])->findOrFail($id);
-
-            // 👑 Administrador puede ver todo
-            if ($user->hasRole('Administrador')) {
-                return response()->json($actividad);
-            }
-
-            // 👔 JefeInmediato solo si pertenece a su área
-            if ($user->hasRole('JefeInmediato')) {
-                if ($user->areas->pluck('id')->contains($actividad->area_id)) {
-                    return response()->json($actividad);
-                }
-            }
-
-            // 👤 Usuario solo si está asignada a él
-            if ($user->hasRole('Usuario') && $actividad->asignado_a == $user->id) {
-                return response()->json($actividad);
-            }
-            
-
-            // ❌ Si no cumple nada
-            return response()->json([
-                'success' => false,
-                'message' => 'No tiene permiso para ver esta actividad'
-            ], 403);
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener la actividad',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    //    public function show($id)
-    //     {
-    //         try {
-    //             // Buscar actividad por ID con relaciones
-    //             $actividad = Actividad::with([
-    //                 'area',
-    //                 'asignadoA',
-    //                 'asignadoPor',
-    //                 'aprobadaPor',
-    //                 'evidencias'
-    //             ])->findOrFail($id);
-
-    //             return response()->json([
-    //                 'success' => true,
-    //                 'data' => $actividad
-    //             ], 200);
-    //         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Actividad no encontrada'
-    //             ], 404);
-    //         } catch (\Exception $e) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Error al obtener la actividad',
-    //                 'error' => $e->getMessage()
-    //             ], 500);
-    //         }
-    //     }
 
     public function update(Request $request, $id)
     {
@@ -328,107 +328,95 @@ class ActividadController extends Controller
             $user = Auth::user();
             $actividad = Actividad::findOrFail($id);
 
+            // 1. 🛑 RESTRICCIÓN DE ESTADO: Solo editar si NO está Finalizada o en Espera
+            $estadosRestringidos = ['Finalizada', 'Espera_aprobacion'];
+            if (in_array($actividad->estado, $estadosRestringidos)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "No se puede editar una actividad con estado: {$actividad->estado}."
+                ], 403);
+            }
+
+            // 2. VALIDACIÓN
             $request->validate([
                 'nombre' => 'sometimes|required|string|max:255',
                 'descripcion' => 'nullable|string',
                 'area_id' => 'sometimes|required|exists:areas,id',
                 'asignado_a' => 'sometimes|required|exists:users,id',
-                'minutos_planeados' => 'nullable|integer|min:0',
-                'fecha_finalizacion' => 'nullable|date',
-                'requiere_aprobacion' => 'nullable|boolean',
-                'notificar_asignacion' => 'nullable|boolean',
-                'estado' => 'sometimes|string',
-
-                // Archivos nuevos
-                'archivos_solucion.*' => 'nullable|file|max:10240',
+                // Eliminamos 'estado' de la validación si no quieres que el usuario lo cambie manualmente
+                'archivos.*' => 'nullable|file|max:10240',
+                'requiere_aprobacion' => 'nullable',
                 'solucion' => 'nullable|string',
-
-                // Observaciones
-                'observacion' => 'nullable|string',
-                'archivo_observacion' => 'nullable|file|max:10240'
             ]);
 
-            // 🔒 VALIDACIÓN POR ROL (Tu lógica original)
-            if ($user->hasRole('JefeInmediato') && $request->has('area_id')) {
-                $areasIds = $user->areas()->pluck('areas.id');
-                if (!$areasIds->contains($request->area_id)) {
-                    return response()->json(['success' => false, 'message' => 'No tiene permiso'], 403);
+            // 3. 🔒 SEGURIDAD POR ROL
+            if (!$user->hasRole('Administrador')) {
+                if ($user->hasRole('JefeInmediato')) {
+                    $areasIds = $user->areas()->pluck('areas.id');
+                    if ($request->has('area_id') && !$areasIds->contains($request->area_id)) {
+                        return response()->json(['success' => false, 'message' => 'No puede mover actividades a áreas no asignadas.'], 403);
+                    }
+                    if (!$areasIds->contains($actividad->area_id)) {
+                        return response()->json(['success' => false, 'message' => 'No tiene permisos sobre esta actividad.'], 403);
+                    }
+                }
+                if ($user->hasRole('Usuario') && $actividad->asignado_a != $user->id) {
+                    return response()->json(['success' => false, 'message' => 'No tiene permisos para editar esta actividad.'], 403);
                 }
             }
 
-            // 🛠 PREPARAR DATA
-            $data = $request->except(['archivos_solucion', 'solucion', 'observacion', 'archivo_observacion', 'archivos']);
-
-            // ✨ REGLAS DE ESTADO (Tu lógica original)
-            if ($actividad->estado === 'Por_corregir') {
-                $data['minutos_ejecutados'] = $actividad->minutos_ejecutados;
-            }
-
-            if (!$request->has('estado') || $request->estado == $actividad->estado) {
-                if ($request->filled('solucion') || $request->hasFile('archivos_solucion')) {
-                    $reqApp = $request->has('requiere_aprobacion')
-                        ? filter_var($request->requiere_aprobacion, FILTER_VALIDATE_BOOLEAN)
-                        : $actividad->requiere_aprobacion;
-                    $data['estado'] = $reqApp ? 'Espera_aprobacion' : 'Finalizada';
+            // 4. GESTIÓN DE ARCHIVOS
+            $archivosFinales = [];
+            $inputArchivos = $request->input('archivos');
+            if ($inputArchivos) {
+                $existentes = is_string($inputArchivos) ? json_decode($inputArchivos, true) : $inputArchivos;
+                if (is_array($existentes)) {
+                    foreach ($existentes as $arc) {
+                        if (isset($arc['path'])) {
+                            $archivosFinales[] = [
+                                'path' => $arc['path'],
+                                'original_name' => $arc['original_name'] ?? 'archivo_existente',
+                            ];
+                        }
+                    }
                 }
-            } else {
-                $data['estado'] = $request->estado;
             }
 
-            // 📂 LÓGICA DE ARCHIVOS EN COLUMNA JSON
-            // 1. Obtenemos lo que el Front mandó como "archivos que se quedan"
-            // Si el front mandó una lista filtrada, la tomamos; si no, la actual.
-            $archivosFinales = $request->has('archivos')
-                ? json_decode($request->archivos, true)
-                : (is_array($actividad->archivos) ? $actividad->archivos : []);
-
-            // 2. Si vienen archivos nuevos físicamente, los subimos y agregamos al array
-            if ($request->hasFile('archivos_solucion')) {
-                foreach ($request->file('archivos_solucion') as $archivo) {
-                    $path = $archivo->store('soluciones', 'public');
+            if ($request->hasFile('archivos')) {
+                foreach ($request->file('archivos') as $archivo) {
+                    $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
+                    $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
                     $archivosFinales[] = [
-                        'path' => $path,
-                        'nombre_original' => $archivo->getClientOriginalName(),
-                        'user_id' => $user->id,
-                        'fecha' => now()->toDateTimeString()
+                        'path' => 'uploads/actividades/' . $nombreArchivo,
+                        'original_name' => $archivo->getClientOriginalName(),
                     ];
                 }
             }
 
-            // Guardamos el array resultante en la columna 'archivos'
+            // 5. PREPARAR DATOS (Quitamos la lógica que forzaba el cambio de estado)
+            // Usamos except 'estado' para asegurar que el estado de la DB no cambie por el request
+            $data = $request->except(['archivos', 'estado']);
             $data['archivos'] = $archivosFinales;
 
-            // 🚀 ACTUALIZAR ACTIVIDAD
+            // 6. ACTUALIZAR
             $actividad->update($data);
 
-            // 📝 GUARDAR OBSERVACIÓN (Tu lógica original)
-            if ($request->filled('observacion')) {
-                $pathObs = null;
-                $nomObs = null;
-                if ($request->hasFile('archivo_observacion')) {
-                    $file = $request->file('archivo_observacion');
-                    $pathObs = $file->store('observaciones', 'public');
-                    $nomObs = $file->getClientOriginalName();
-                }
-
-                Observacion::create([
-                    'actividad_id' => $actividad->id,
-                    'user_id' => $user->id,
-                    'comentario' => $request->observacion,
-                    'archivo_path' => $pathObs,
-                    'nombre_original' => $nomObs
-                ]);
-            }
+            // 7. CARGAR RELACIONES Y RESPONDER
+            $actividad->load(['area', 'asignadoA', 'asignadoPor', 'evidencias']);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Actualizado con éxito',
-                'data' => $actividad->load(['area', 'asignadoA', 'asignadoPor', 'evidencias', 'observaciones'])
+                'message' => 'Actividad actualizada correctamente',
+                'data' => $actividad
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
+
+
     // public function update(Request $request, $id)
     // {
     //     try {

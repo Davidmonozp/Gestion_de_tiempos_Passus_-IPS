@@ -88,9 +88,9 @@ export const VerActividad = () => {
     };
 
     const handleUpdate = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
 
-        // 1. Mostrar alerta de "Cargando"
+        // 1. Mostrar alerta de carga
         Swal.fire({
             title: 'Guardando cambios...',
             text: 'Por favor espera un momento',
@@ -102,86 +102,89 @@ export const VerActividad = () => {
 
         const data = new FormData();
 
-        // Procesar campos de texto
+        // 2. PROCESAR CAMPOS DE TEXTO Y RELACIONES
         Object.keys(form).forEach(key => {
             const value = form[key];
 
-            // 1. Manejo de IDs de objetos (Relaciones)
-            // Extraemos el ID solo si el campo es un objeto y tiene ID
+            // Manejo específico de IDs (Relaciones)
             if (key === 'asignado_a' && value?.id) {
                 data.append('asignado_a', value.id);
             }
-            else if (key === 'aprobada_por' && value?.id) {
-                data.append('aprobada_por', value.id);
+            else if (key === 'area_id' || key === 'area') {
+                // Aseguramos enviar el ID del área, ya sea que venga como objeto o ID
+                const areaId = value?.id || value;
+                if (areaId) data.append('area_id', areaId);
             }
-
-            // 2. Manejo de Booleanos para Laravel (Transformar a "1" o "0")
+            // Manejo de Booleanos (Laravel prefiere 1/0 en FormData)
             else if (['requiere_aprobacion', 'notificar_asignacion'].includes(key)) {
                 data.append(key, value ? "1" : "0");
             }
-
-            // 3. EXCLUIR Y LIMPIAR
-            // Excluimos los objetos completos para que no se envíen como "[object Object]"
-            // Y excluimos lo que se maneja por fuera del loop (archivos)
+            // EXCLUSIONES: No enviamos objetos pesados ni archivos aquí
             else if (![
-                'archivos',
-                'archivos_solucion',
-                'area',           // Excluimos el objeto área viejo
-                'asignado_por',
-                'asignado_a_user',
-                'evidencias',
-                'observaciones',
-                'aprobada_por'
+                'archivos', 'archivos_solucion', 'area', 'asignado_por',
+                'asignado_a_user', 'evidencias', 'observaciones', 'aprobada_por'
             ].includes(key)) {
-                // Solo agregamos si el valor no es nulo
                 if (value !== null && value !== undefined) {
                     data.append(key, value);
                 }
             }
         });
 
-        /** * CLAVE: Enviar los archivos que ya existen en la DB 
-         * (el array que ya fue filtrado visualmente por eliminarArchivoDeColumna)
-         */
+        // 3. ENVIAR ARCHIVOS EXISTENTES (Como String JSON)
+        // Esto permite que el controlador sepa cuáles NO borraste
         if (form.archivos) {
-            data.append('archivos', JSON.stringify(form.archivos));
+            // Si form.archivos ya es un objeto/array, lo convertimos a texto
+            const archivosAEnviar = typeof form.archivos === 'string'
+                ? form.archivos
+                : JSON.stringify(form.archivos);
+
+            data.append('archivos', archivosAEnviar);
         }
 
-        // Agregar archivos NUEVOS seleccionados en el input
-        nuevosArchivos.forEach(file => {
-            data.append("archivos[]", file);
-        });
+        // 4. AGREGAR ARCHIVOS NUEVOS (Files binarios)
+        if (nuevosArchivos && nuevosArchivos.length > 0) {
+            nuevosArchivos.forEach(file => {
+                data.append("archivos[]", file); // Importante los corchetes []
+            });
+        }
 
-        // Simular PUT a través de POST (necesario para multipart/form-data en Laravel)
+        /**
+         * IMPORTANTE PARA LARAVEL Y MULTIPART:
+         * Laravel a veces falla con PUT + FormData. 
+         * La solución estándar es usar POST y añadir _method = PUT.
+         */
         data.append("_method", "PUT");
 
         try {
             const response = await api.post(`/actualizar-actividad/${id}`, data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json'
+                }
             });
 
             if (response.data.success) {
-                // 2. Alerta de Éxito
                 await Swal.fire({
                     icon: 'success',
-                    title: '¡Logrado!',
-                    text: 'La actividad se actualizó correctamente',
+                    title: '¡Actualizado!',
+                    text: 'La actividad se guardó correctamente',
                     timer: 2000,
                     showConfirmButton: false
                 });
 
                 setEditMode(false);
-                setNuevosArchivos([]); // Limpiar cola de subida
-                await cargarDetalles(); // Refrescar datos desde el servidor
+                setNuevosArchivos([]); // Limpiar cola
+                if (typeof cargarDetalles === 'function') {
+                    await cargarDetalles(); // Refrescar vista
+                }
             }
         } catch (error) {
-            console.error("Error completo:", error);
+            console.error("Error en la petición:", error.response?.data || error);
 
-            // 3. Alerta de Error
             Swal.fire({
                 icon: 'error',
                 title: 'Error al guardar',
-                text: error.response?.data?.message || 'Hubo un problema al procesar la solicitud',
+                text: error.response?.data?.error || error.response?.data?.message || 'Error interno del servidor (500)',
             });
         }
     };
@@ -199,6 +202,10 @@ export const VerActividad = () => {
             ...form,
             archivos: archivosActualizados
         });
+    };
+    const eliminarArchivoDeFila = (index) => {
+        const filtrados = nuevosArchivos.filter((_, i) => i !== index);
+        setNuevosArchivos(filtrados);
     };
 
     if (loading) return <p>Cargando detalles...</p>;
@@ -431,9 +438,16 @@ export const VerActividad = () => {
 
 
 
-                    <VerSoluciones actividadId={form.id} />
+                    <VerSoluciones
+                        evidencias={form.evidencias}
+                        revisiones={form.revisiones}
+                        solicitudes={form.solicitudes}
+                        actividad={form}
+                        BASE_URL={BASE_URL}
+                        onUpdate={cargarDetalles}
+                    />
 
-                    <VerSoluciones evidencias={form.evidencias} revisiones={form.revisiones} solicitudes={form.solicitudes} actividad={form} BASE_URL={BASE_URL} onUpdate={cargarDetalles} />
+                    
                     {/* --- LÓGICA DE REVISIÓN DEL JEFE --- */}
                     {tienePermiso(['JefeInmediato', 'Administrador']) && form.estado === 'Espera_aprobacion' && (
                         <RevisarActividad

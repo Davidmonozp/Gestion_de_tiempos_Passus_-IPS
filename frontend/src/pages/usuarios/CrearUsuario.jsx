@@ -1,192 +1,299 @@
-import { useState, useEffect } from "react";
-import api from "../../services/api";
+import React, { useState, useEffect, useRef } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2'; // 1. Importar SweetAlert
+import {
+  ArrowLeft, Save, Loader2, User, Lock,
+  IdCard, Briefcase, ChevronDown
+} from 'lucide-react';
+import api from '../../services/api';
+import './styles/CrearUsuario.css';
+import { Navbar } from '../../components/Navbar';
+import { Sidebar } from '../../components/Sidebar';
+import { Version } from '../../components/Version';
 
-export const CrearUsuario = () => {
-  const [form, setForm] = useState({
-    nombre: "",
-    segundo_nombre: "",
-    apellido: "",
-    segundo_apellido: "",
-    tipo_documento: "CC",
-    numero_documento: "",
-    nombre_usuario: "",
-    email: "",
-    cargo: "",
-    password: "",
-    rol_id: "",   // ID del rol seleccionado
-    area_id: "",  // ID del área seleccionada
-  });
+const CrearUsuario = () => {
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null); // Ref para el dropdown
+  const [areasDisponibles, setAreasDisponibles] = useState([]);
+  const [loadingAreas, setLoadingAreas] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const [roles, setRoles] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [loading, setLoading] = useState(false);
-
+  // Cargar áreas
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAreas = async () => {
       try {
-        const [rolesRes, areasRes] = await Promise.all([
-          api.get("/ver-roles"),
-          api.get("/ver-areas"),
-        ]);
-        setRoles(rolesRes.data.data);
-        setAreas(areasRes.data.data);
+        const response = await api.get('/ver-areas');
+        const data = response.data.data || response.data;
+        setAreasDisponibles(data);
       } catch (error) {
-        console.error("Error al cargar roles o áreas:", error);
-        alert("Error al cargar roles o áreas");
+        console.error("Error al cargar áreas:", error);
+      } finally {
+        setLoadingAreas(false);
       }
     };
-    fetchData();
+    fetchAreas();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const validationSchema = Yup.object().shape({
+    nombre: Yup.string().required('El primer nombre es obligatorio'),
+    apellido: Yup.string().required('El primer apellido es obligatorio'),
+    segundo_apellido: Yup.string().required('El segundo apellido es obligatorio'),
+    tipo_documento: Yup.string().required('Seleccione un tipo'),
+    numero_documento: Yup.string().required('Documento obligatorio'),
+    nombre_usuario: Yup.string().required('El nombre de usuario es obligatorio'),
+    email: Yup.string().email('Email inválido').required('El email es obligatorio'),
+    password: Yup.string().min(6, 'Mínimo 6 caracteres').required('La contraseña es obligatoria'),
+    cargo: Yup.string().required('El cargo es obligatorio'),
+    rol_nombre: Yup.string().required('Seleccione un rol'),
+    area_id: Yup.array().min(1, 'Seleccione al menos un área').required('El área es obligatoria')
+  });
+
+  const initialValues = {
+    nombre: '', segundo_nombre: '', apellido: '', segundo_apellido: '',
+    tipo_documento: '', numero_documento: '', nombre_usuario: '',
+    email: '', password: '', cargo: '', rol_nombre: '', area_id: []
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
-      const data = new FormData();
-      data.append("nombre", form.nombre);
-      data.append("segundo_nombre", form.segundo_nombre);
-      data.append("apellido", form.apellido);
-      data.append("segundo_apellido", form.segundo_apellido);
-      data.append("tipo_documento", form.tipo_documento);
-      data.append("numero_documento", form.numero_documento);
-      data.append("nombre_usuario", form.nombre_usuario);
-      data.append("email", form.email);
-      data.append("cargo", form.cargo);
-      data.append("password", form.password);
+      const valuesToSend = {
+        ...values,
+        area_id: values.area_id.map(id => parseInt(id))
+      };
 
-      // Enviar nombre del rol, no el id
-      const rolSeleccionado = roles.find(r => r.id === parseInt(form.rol_id));
-      if (rolSeleccionado) {
-        data.append("rol_nombre", rolSeleccionado.name);
-      }
+      await api.post('/registro-usuario', valuesToSend);
 
-      // Enviar área como array
-      data.append("area_id[]", form.area_id);
+      // 2. Alerta de Éxito
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Registro Exitoso!',
+        text: 'El personal ha sido dado de alta correctamente.',
+        confirmButtonColor: '#2563eb', // Color acorde a tu CSS
+        timer: 2000
+      });
 
-      const response = await api.post("/registro-usuario", data);
-
-      if (response.data.status === "success") {
-        alert("Usuario creado con éxito");
-        setForm({
-          nombre: "",
-          segundo_nombre: "",
-          apellido: "",
-          segundo_apellido: "",
-          tipo_documento: "CC",
-          numero_documento: "",
-          nombre_usuario: "",
-          email: "",
-          cargo: "",
-          password: "",
-          rol_id: "",
-          area_id: "",
-        });
-      } else {
-        alert("Error: " + response.data.message);
-      }
+      resetForm();
+      navigate('/usuarios');
     } catch (error) {
-      console.error("Error al crear usuario:", error.response?.data || error);
-      if (error.response?.data?.errors) {
-        const errs = error.response.data.errors;
-        let msg = "";
-        for (let key in errs) {
-          msg += `${key}: ${errs[key].join(", ")}\n`;
-        }
-        alert(msg);
-      } else {
-        alert("Ocurrió un error al crear el usuario");
-      }
+      // 3. Alerta de Error
+      const msjs = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join('<br>')
+        : 'Hubo un problema al procesar la solicitud.';
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Validación',
+        html: msjs, // Usamos HTML para que los saltos de línea de Laravel se vean bien
+        confirmButtonColor: '#ef4444'
+      });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px", fontFamily: "Arial" }}>
-      <h2>Crear Usuario</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Campos básicos */}
-        <div style={{ marginBottom: "10px" }}>
-          <label>Nombre:</label>
-          <input name="nombre" value={form.nombre} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Segundo Nombre:</label>
-          <input name="segundo_nombre" value={form.segundo_nombre} onChange={handleChange} style={{ width: "100%" }} />
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Apellido:</label>
-          <input name="apellido" value={form.apellido} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>Segundo Apellido:</label>
-          <input name="segundo_apellido" value={form.segundo_apellido} onChange={handleChange} style={{ width: "100%" }} />
-        </div>
+    <>
+      <Navbar />
+      <div className="container-usuarios">
+        <Sidebar />
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Tipo Documento:</label>
-          <select name="tipo_documento" value={form.tipo_documento} onChange={handleChange}>
-            <option value="CC">CC</option>
-            <option value="TI">TI</option>
-            <option value="CE">CE</option>
-          </select>
-        </div>
+        <div className="crear-usuario-container">
+          <header className="form-header">
+            <button className="btn-back" onClick={() => navigate('/usuarios')}>
+              <ArrowLeft size={20} />
+            </button>
+            <div className="header-text">
+              <h2>Registrar Nuevo Usuario</h2>
+              <p>Complete la información para registrar un usuario</p>
+            </div>
+          </header>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Número Documento:</label>
-          <input name="numero_documento" value={form.numero_documento} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+          >
+            {({ isSubmitting, values, setFieldValue }) => (
+              <Form className="modern-form">
+                <div className="form-sections-grid">
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Nombre de Usuario:</label>
-          <input name="nombre_usuario" value={form.nombre_usuario} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
+                  {/* SECCIÓN 1: DATOS PERSONALES */}
+                  <section className="form-section">
+                    <div className="section-title">
+                      <User size={18} /> <h3>Información Personal</h3>
+                    </div>
+                    <div className="fields-grid">
+                      <div className="form-group">
+                        <label>Primer Nombre*</label>
+                        <Field name="nombre" type="text" placeholder="Ej: Carlos" />
+                        <ErrorMessage name="nombre" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>Segundo Nombre</label>
+                        <Field name="segundo_nombre" type="text" placeholder="(Opcional)" />
+                      </div>
+                      <div className="form-group">
+                        <label>Primer Apellido*</label>
+                        <Field name="apellido" type="text" placeholder="Ej: Pérez" />
+                        <ErrorMessage name="apellido" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>Segundo Apellido*</label>
+                        <Field name="segundo_apellido" type="text" placeholder="Ej: Rodríguez" />
+                        <ErrorMessage name="segundo_apellido" component="span" className="error-msg" />
+                      </div>
+                    </div>
+                  </section>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Email:</label>
-          <input name="email" type="email" value={form.email} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
+                  {/* SECCIÓN 2: IDENTIFICACIÓN Y ACCESO */}
+                  <section className="form-section">
+                    <div className="section-title">
+                      <IdCard size={18} /> <h3>Identificación y Acceso</h3>
+                    </div>
+                    <div className="fields-grid">
+                      <div className="form-group">
+                        <label>Tipo Documento*</label>
+                        <Field as="select" name="tipo_documento">
+                          <option value="">Seleccione...</option>
+                          <option value="CC">Cédula de Ciudadanía</option>
+                          <option value="CE">Cédula de Extranjería</option>
+                        </Field>
+                        <ErrorMessage name="tipo_documento" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>No. Documento*</label>
+                        <Field name="numero_documento" type="text" />
+                        <ErrorMessage name="numero_documento" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>Nombre de Usuario*</label>
+                        <Field name="nombre_usuario" type="text" placeholder="#cedula" />
+                        <ErrorMessage name="nombre_usuario" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>Email*</label>
+                        <Field name="email" type="email" placeholder="ejemplo@passus.com" />
+                        <ErrorMessage name="email" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group full-width">
+                        <label>Contraseña de Acceso*</label>
+                        <div className="input-with-icon">
+                          <Field name="password" type="password" />
+                          <Lock size={16} className="icon-inside" />
+                        </div>
+                        <ErrorMessage name="password" component="span" className="error-msg" />
+                      </div>
+                    </div>
+                  </section>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Cargo:</label>
-          <input name="cargo" value={form.cargo} onChange={handleChange} style={{ width: "100%" }} />
-        </div>
+                  {/* SECCIÓN 3: DATOS LABORALES */}
+                  <section className="form-section full-width">
+                    <div className="section-title">
+                      <Briefcase size={18} /> <h3>Asignación Laboral</h3>
+                    </div>
+                    <div className="fields-grid">
+                      <div className="form-group">
+                        <label>Cargo*</label>
+                        <Field name="cargo" type="text" placeholder="Ej: Auxiliar de automatización" />
+                        <ErrorMessage name="cargo" component="span" className="error-msg" />
+                      </div>
+                      <div className="form-group">
+                        <label>Rol en Sistema*</label>
+                        <Field as="select" name="rol_nombre">
+                          <option value="">Seleccione Rol...</option>
+                          <option value="Administrador">Administrador</option>
+                          <option value="Usuario">Usuario</option>
+                          <option value="JefeInmediato">Jefe Inmediato</option>
+                        </Field>
+                        <ErrorMessage name="rol_nombre" component="span" className="error-msg" />
+                      </div>
+                    </div>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Password:</label>
-          <input name="password" type="password" value={form.password} onChange={handleChange} required style={{ width: "100%" }} />
-        </div>
+                    <div className="form-group full-width" ref={dropdownRef}>
+                      <label className="label-main">Asignar Áreas*</label>
+                      <div className={`custom-multiselect ${isDropdownOpen ? 'open' : ''}`}>
+                        <div
+                          className="multiselect-header"
+                          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        >
+                          <span>
+                            {values.area_id.length > 0
+                              ? `${values.area_id.length} área(s) seleccionada(s)`
+                              : "Seleccionar áreas..."}
+                          </span>
+                          <ChevronDown
+                            size={16}
+                            style={{
+                              transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: '0.3s'
+                            }}
+                          />
+                        </div>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Rol:</label>
-          <select name="rol_id" value={form.rol_id} onChange={handleChange} required>
-            <option value="">Seleccione un rol</option>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-        </div>
+                        {isDropdownOpen && (
+                          <div className="multiselect-options">
+                            {loadingAreas ? (
+                              <div className="loading-inline"><Loader2 className="spin" size={14} /> Cargando...</div>
+                            ) : (
+                              areasDisponibles.map(area => (
+                                <label key={area.id} className="checkbox-item">
+                                  <input
+                                    type="checkbox"
+                                    name="area_id"
+                                    value={area.id.toString()}
+                                    checked={values.area_id.includes(area.id.toString())}
+                                    onChange={(e) => {
+                                      const { checked, value } = e.target;
+                                      if (checked) {
+                                        setFieldValue("area_id", [...values.area_id, value]);
+                                      } else {
+                                        setFieldValue("area_id", values.area_id.filter(id => id !== value));
+                                      }
+                                    }}
+                                  />
+                                  <span className="checkmark"></span>
+                                  <span className="label-text">{area.nombre}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <ErrorMessage name="area_id" component="span" className="error-msg" />
+                    </div>
+                  </section>
+                </div>
 
-        <div style={{ marginBottom: "10px" }}>
-          <label>Área:</label>
-          <select name="area_id" value={form.area_id} onChange={handleChange} required>
-            <option value="">Seleccione un área</option>
-            {areas.map((a) => (
-              <option key={a.id} value={a.id}>{a.nombre}</option>
-            ))}
-          </select>
+                <div className="form-actions">
+                  <button type="button" className="btn-cancelar" onClick={() => navigate('/usuarios')}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-guardar" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="spin" size={20} /> : <Save size={20} />}
+                    {isSubmitting ? 'Guardando...' : 'Registrar Personal'}
+                  </button>
+                </div>
+              </Form>
+            )}
+          </Formik>
         </div>
-
-        <button type="submit" disabled={loading} style={{ background: "#4CAF50", color: "white", padding: "10px 20px", border: "none", borderRadius: "4px" }}>
-          {loading ? "Creando..." : "Crear Usuario"}
-        </button>
-      </form>
-    </div>
+        <Version />
+      </div>
+    </>
   );
 };
+
+export default CrearUsuario;
