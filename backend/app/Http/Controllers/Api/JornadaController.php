@@ -111,38 +111,69 @@ class JornadaController extends Controller
         ]);
     }
 
+    // public function obtenerBalanceDiario()
+    // {
+    //     $user = Auth::user();
+    //     $hoy = Carbon::today()->toDateString();
+
+    //     // 1. Obtener el tiempo total de la jornada laboral de hoy (ya con almuerzo descontado)
+    //     $minutosJornada = Jornada::where('user_id', $user->id)
+    //         ->where('fecha', $hoy)
+    //         ->sum('total_minutos');
+
+    //     // 2. Sumar minutos de actividades (ejecutados + extras) registrados hoy
+    //     // Nota: Filtramos por la fecha de actualización o finalización
+    //     $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
+    //         ->whereDate('updated_at', $hoy) // O usa el campo de fecha que prefieras
+    //         ->get()
+    //         ->sum(function ($actividad) {
+    //             return $actividad->minutos_ejecutados + ($actividad->minutos_extra ?? 0);
+    //         });
+
+    //     $diferencia = $minutosJornada - $minutosActividades;
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => [
+    //             'fecha' => $hoy,
+    //             'minutos_laborales' => $minutosJornada,
+    //             'minutos_actividades' => $minutosActividades,
+    //             'diferencia' => $diferencia,
+    //             'mensaje' => $this->generarMensajeBalance($diferencia)
+    //         ]
+    //     ]);
+    // }
+
     public function obtenerBalanceDiario()
-    {
-        $user = Auth::user();
-        $hoy = Carbon::today()->toDateString();
+{
+    $user = Auth::user();
+    $hoy = Carbon::today()->toDateString();
 
-        // 1. Obtener el tiempo total de la jornada laboral de hoy (ya con almuerzo descontado)
-        $minutosJornada = Jornada::where('user_id', $user->id)
-            ->where('fecha', $hoy)
-            ->sum('total_minutos');
+    // 1. Obtener el tiempo total de la jornada laboral de hoy
+    $minutosJornada = Jornada::where('user_id', $user->id)
+        ->where('fecha', $hoy)
+        ->sum('total_minutos');
 
-        // 2. Sumar minutos de actividades (ejecutados + extras) registrados hoy
-        // Nota: Filtramos por la fecha de actualización o finalización
-        $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
-            ->whereDate('updated_at', $hoy) // O usa el campo de fecha que prefieras
-            ->get()
-            ->sum(function ($actividad) {
-                return $actividad->minutos_ejecutados + ($actividad->minutos_extra ?? 0);
-            });
+    // 2. CORRECCIÓN: Sumar minutos desde la tabla EVIDENCIAS (ejecutados + extras)
+    // Filtramos solo por lo que se creó HOY para evitar arrastrar acumulados de ayer
+    $minutosActividades = \App\Models\Evidencia::where('user_id', $user->id)
+        ->whereDate('created_at', $hoy)
+        ->selectRaw('SUM(minutos_ejecutados + COALESCE(minutos_extra, 0)) as total')
+        ->value('total') ?? 0;
 
-        $diferencia = $minutosJornada - $minutosActividades;
+    $diferencia = $minutosJornada - $minutosActividades;
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'fecha' => $hoy,
-                'minutos_laborales' => $minutosJornada,
-                'minutos_actividades' => $minutosActividades,
-                'diferencia' => $diferencia,
-                'mensaje' => $this->generarMensajeBalance($diferencia)
-            ]
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'fecha' => $hoy,
+            'minutos_laborales' => $minutosJornada,
+            'minutos_actividades' => $minutosActividades, // Ahora es esfuerzo real del día
+            'diferencia' => $diferencia,
+            'mensaje' => $this->generarMensajeBalance($diferencia)
+        ]
+    ]);
+}
 
     private function generarMensajeBalance($dif)
     {
@@ -166,20 +197,19 @@ class JornadaController extends Controller
         $horaSalidaSimulada = Carbon::now();
         $horaEntrada = Carbon::parse($jornada->hora_entrada);
 
-        // Cálculos
+        // 1. Cálculos de tiempo de reloj
         $minutosBrutos = (int) $horaEntrada->diffInMinutes($horaSalidaSimulada);
 
-        // NUEVA LÓGICA: Aplicar el mismo umbral de 6 horas
+        // Lógica de almuerzo (umbral de 6 horas)
         $descuentoAlmuerzo = ($minutosBrutos > 360) ? 60 : 0;
         $minutosNetos = $minutosBrutos - $descuentoAlmuerzo;
 
-        // Suma de actividades
-        $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
-            ->whereDate('updated_at', $hoy)
-            ->get()
-            ->sum(function ($act) {
-                return $act->minutos_ejecutados + ($act->minutos_extra ?? 0);
-            });
+        // 2. CORRECCIÓN: Sumar ambas columnas de la tabla Evidencias
+        // Usamos selectRaw para sumar la combinación de ambos campos en una sola pasada
+        $minutosActividades = \App\Models\Evidencia::where('user_id', $user->id)
+            ->whereDate('created_at', $hoy)
+            ->selectRaw('SUM(minutos_ejecutados + COALESCE(minutos_extra, 0)) as total')
+            ->value('total') ?? 0;
 
         $diferencia = $minutosNetos - $minutosActividades;
 
@@ -189,8 +219,53 @@ class JornadaController extends Controller
                 'tiempo_laboral' => $this->formatearMinutos($minutosNetos),
                 'tiempo_actividades' => $this->formatearMinutos($minutosActividades),
                 'diferencia_minutos' => $diferencia,
-                'almuerzo' => $descuentoAlmuerzo
+                'almuerzo' => $descuentoAlmuerzo,
+                'mensaje_estado' => $diferencia > 0
+                    ? "Te faltan " . $this->formatearMinutos($diferencia) . " por justificar."
+                    : "Has justificado todo tu tiempo correctamente."
             ]
         ]);
     }
+
+    // public function previsualizarSalida()
+    // {
+    //     $user = Auth::user();
+    //     $hoy = Carbon::today()->toDateString();
+
+    //     $jornada = Jornada::where('user_id', $user->id)->where('estado', 'activo')->first();
+
+    //     if (!$jornada) {
+    //         return response()->json(['success' => false, 'message' => 'No hay jornada activa'], 404);
+    //     }
+
+    //     $horaSalidaSimulada = Carbon::now();
+    //     $horaEntrada = Carbon::parse($jornada->hora_entrada);
+
+    //     // Cálculos
+    //     $minutosBrutos = (int) $horaEntrada->diffInMinutes($horaSalidaSimulada);
+
+    //     // NUEVA LÓGICA: Aplicar el mismo umbral de 6 horas
+    //     $descuentoAlmuerzo = ($minutosBrutos > 360) ? 60 : 0;
+    //     $minutosNetos = $minutosBrutos - $descuentoAlmuerzo;
+
+    //     // Suma de actividades
+    //     $minutosActividades = \App\Models\Actividad::where('asignado_a', $user->id)
+    //         ->whereDate('updated_at', $hoy)
+    //         ->get()
+    //         ->sum(function ($act) {
+    //             return $act->minutos_ejecutados + ($act->minutos_extra ?? 0);
+    //         });
+
+    //     $diferencia = $minutosNetos - $minutosActividades;
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'calculo' => [
+    //             'tiempo_laboral' => $this->formatearMinutos($minutosNetos),
+    //             'tiempo_actividades' => $this->formatearMinutos($minutosActividades),
+    //             'diferencia_minutos' => $diferencia,
+    //             'almuerzo' => $descuentoAlmuerzo
+    //         ]
+    //     ]);
+    // }
 }

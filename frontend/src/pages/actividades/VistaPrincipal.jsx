@@ -88,12 +88,14 @@ export const VistaPrincipal = () => {
         const fetchActividades = async () => {
             try {
                 const res = await api.get('/ver-actividades');
-                const actividades = res.data.data;
-                setActividadesRaw(actividades); // Guardamos para useMemo
+                // Nota: Si usas paginación en Laravel, es res.data.data
+                const actividades = res.data.data || res.data;
+                setActividadesRaw(actividades);
 
                 setTotalActividades(actividades.length);
                 setActividadesPendientes(actividades.filter(act => act.estado !== 'Finalizada').length);
 
+                // 1. Reducers de estados y áreas (se mantienen igual)
                 const resumen = actividades.reduce((acc, act) => {
                     acc[act.estado] = (acc[act.estado] || 0) + 1;
                     return acc;
@@ -107,16 +109,53 @@ export const VistaPrincipal = () => {
                 }, {});
                 setResumenAreas(porArea);
 
+                // 2. FILTRAR FINALIZADAS PARA ESTADÍSTICAS DE CUMPLIMIENTO
                 const finalizadas = actividades.filter(act => act.estado === 'Finalizada');
-                const aTiempo = finalizadas.filter(act => act.minutos_ejecutados <= act.minutos_planeados).length;
-                const conRetraso = finalizadas.filter(act => act.minutos_ejecutados > act.minutos_planeados).length;
-                const totalFin = aTiempo + conRetraso;
+                const totalFin = finalizadas.length;
 
+                let contadorATiempo = 0;
+                let contadorRetrasoFecha = 0;
+                let contadorExcedioMinutos = 0;
+
+                finalizadas.forEach(act => {
+                    // --- A. LÓGICA DE FECHAS (Calendario) ---
+                    const fechaLimiteStr = act.fecha_finalizacion?.split(' ')[0];
+                    let fechaCierreReal = act.updated_at?.split(' ')[0];
+
+                    if (act.evidencias && act.evidencias.length > 0) {
+                        const ultimaEvidencia = act.evidencias.reduce((prev, current) =>
+                            (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current
+                        );
+                        fechaCierreReal = ultimaEvidencia.updated_at?.split(' ')[0];
+                    }
+
+                    if (fechaCierreReal <= fechaLimiteStr) {
+                        contadorATiempo++;
+                    } else {
+                        contadorRetrasoFecha++;
+                    }
+
+                    // --- B. LÓGICA DE MINUTOS (Presupuesto) ---
+                    // Sumamos minutos_ejecutados + minutos_extra de todas sus evidencias
+                    const totalMinutosReales = act.evidencias?.reduce((acc, ev) => {
+                        return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
+                    }, 0) || 0;
+
+                    const planeados = Number(act.minutos_planeados) || 0;
+
+                    if (totalMinutosReales > planeados) {
+                        contadorExcedioMinutos++;
+                    }
+                });
+
+                // 3. ACTUALIZAR ESTADO DE ESTADÍSTICAS
                 setStatsCumplimiento({
-                    aTiempo,
-                    conRetraso,
-                    pctATiempo: totalFin > 0 ? ((aTiempo / totalFin) * 100).toFixed(1) : 0,
-                    pctConRetraso: totalFin > 0 ? ((conRetraso / totalFin) * 100).toFixed(1) : 0
+                    aTiempo: contadorATiempo,
+                    conRetraso: contadorRetrasoFecha,
+                    excedioMinutos: contadorExcedioMinutos,
+                    pctATiempo: totalFin > 0 ? ((contadorATiempo / totalFin) * 100).toFixed(1) : "0.0",
+                    pctConRetraso: totalFin > 0 ? ((contadorRetrasoFecha / totalFin) * 100).toFixed(1) : "0.0",
+                    pctExcedioMin: totalFin > 0 ? ((contadorExcedioMinutos / totalFin) * 100).toFixed(1) : "0.0"
                 });
 
             } catch (error) {
@@ -184,16 +223,48 @@ export const VistaPrincipal = () => {
         }));
     }, [actividadesRaw, totalActividades]);
 
+    // const memoComparativa = useMemo(() => {
+    //     return actividadesRaw.slice(-10).map(act => {
+    //         const planeados = act.minutos_planeados || 0;
+    //         const ejecutados = act.minutos_ejecutados || 0;
+    //         const extra = ejecutados > planeados ? ejecutados - planeados : 0;
+    //         const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+    //         return {
+    //             name: act.nombre.substring(0, 30) + '...',
+    //             planeados, cumplidos, extra,
+    //             porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+    //         };
+    //     });
+    // }, [actividadesRaw]);
+
     const memoComparativa = useMemo(() => {
         return actividadesRaw.slice(-10).map(act => {
-            const planeados = act.minutos_planeados || 0;
-            const ejecutados = act.minutos_ejecutados || 0;
-            const extra = ejecutados > planeados ? ejecutados - planeados : 0;
-            const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+            const planeados = Number(act.minutos_planeados) || 0;
+
+            // SUMAMOS las evidencias asociadas a esta actividad
+            // Asumiendo que 'act.evidencias' es un array que viene de tu API
+            const totalEjecutadoEvidencias = act.evidencias?.reduce((acc, ev) => {
+                return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
+            }, 0) || 0;
+
+            // Determinamos el extra (lo que superó la planeación)
+            const extra = totalEjecutadoEvidencias > planeados
+                ? totalEjecutadoEvidencias - planeados
+                : 0;
+
+            // El cumplimiento es el tiempo trabajado que NO es extra (tope de planeación)
+            const cumplidos = totalEjecutadoEvidencias > planeados
+                ? planeados
+                : totalEjecutadoEvidencias;
+
             return {
-                name: act.nombre.substring(0, 30) + '...',
-                planeados, cumplidos, extra,
-                porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+                name: act.nombre.length > 25 ? act.nombre.substring(0, 25) + '...' : act.nombre,
+                planeados,
+                cumplidos,
+                extra,
+                porcentajeCumplimiento: planeados > 0
+                    ? ((totalEjecutadoEvidencias / planeados) * 100).toFixed(1)
+                    : 0
             };
         });
     }, [actividadesRaw]);
@@ -363,13 +434,28 @@ export const VistaPrincipal = () => {
 
                 {/* Cards de Cumplimiento (Div corregido) */}
                 <div className="cumplimiento-stats">
+                    {/* Card Éxito: Fecha correcta */}
                     <div className="stat-card card-success">
-                        <h5>Cumplidas a Tiempo</h5>
+                        <h5>Dentro de la fecha establecida</h5>
                         <p>{statsCumplimiento.aTiempo} <span>({statsCumplimiento.pctATiempo}%)</span></p>
                     </div>
+
+                    {/* Card Advertencia: Se pasó de la fecha límite */}
+                    <div className="stat-card card-warning">
+                        <h5>Fuera de la fecha establecida</h5>
+                        <p>
+                            {statsCumplimiento.conRetraso}
+                            <span>({statsCumplimiento.pctConRetraso}%)</span>
+                        </p>
+                    </div>
+
+                    {/* Card Peligro: Se pasó de los minutos planeados */}
                     <div className="stat-card card-danger">
-                        <h5>Excedieron Tiempo</h5>
-                        <p>{statsCumplimiento.conRetraso} <span>({statsCumplimiento.pctConRetraso}%)</span></p>
+                        <h5>Fuera del tiempo establecido</h5>
+                        <p>
+                            {statsCumplimiento.excedioMinutos}
+                            <span>({statsCumplimiento.pctExcedioMin}%)</span>
+                        </p>
                     </div>
                 </div>
 
@@ -509,16 +595,27 @@ export const VistaPrincipal = () => {
 //     });
 
 //     const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6"];
-//     const COLORS_AREAS = [
-//         '#f59e0b', '#127fa0', '#22c55e', '#ef4444', '#8b5cf6',
-//         '#ec4899', '#06b6d4', '#f97316', '#10b981', '#6366f1'
-//     ];
+//     const COLORES_POR_AREA = {
+//         1: "#3498db", // ADMINISTRATIVA
+//         2: "#2ecc71", // ADMISIONES
+//         3: "#e74c3c", // AUTOMATIZACIÓN
+//         4: "#f1c40f", // BIENESTAR
+//         5: "#9b59b6", // CALIDAD
+//         6: "#1abc9c", // COMERCIAL
+//         7: "#e67e22", // CONTABILIDAD
+//         8: "#34495e", // DIRECCION
+//         9: "#16a085", // FACTURACIÓN Y CARTERA
+//         10: "#2980b9", // GESTIÓN HUMANA
+//         11: "#8e44ad", // INFRAESTRUCTURA
+//         12: "#2c3e50", // LOGISTICA
+//         13: "#d35400", // OPERACIONES
+//         14: "#c0392b", // SERVICIOS DE SALUD
+//         15: "#7f8c8d"  // TESORERIA
+//     };
 
+//     // Busca esta función en tu código
 //     const CustomizedContent = (props) => {
-//         const { x, y, width, height, index, name, depth } = props;
-
-//         // Asigna un color basado en el índice para que no se repitan seguidos
-//         const fillColor = COLORS_AREAS[index % COLORS_AREAS.length];
+//         const { root, depth, x, y, width, height, index, name, fill } = props; // <--- Agrega 'fill' aquí
 
 //         return (
 //             <g>
@@ -528,24 +625,15 @@ export const VistaPrincipal = () => {
 //                     width={width}
 //                     height={height}
 //                     style={{
-//                         fill: fillColor, // 👈 Color dinámico aplicado
+//                         // ANTES: fill: COLORS_AREAS[index % COLORS_AREAS.length]
+//                         // AHORA: Usa el fill que viene de la data
+//                         fill: fill || '#7f8c8d',
 //                         stroke: '#fff',
-//                         strokeWidth: 2 / (depth + 1),
-//                         strokeOpacity: 1,
+//                         strokeWidth: 2,
 //                     }}
 //                 />
-//                 {/* Solo mostramos texto si hay espacio suficiente */}
-//                 {width > 60 && height > 30 && (
-//                     <text
-//                         x={x + width / 2}
-//                         y={y + height / 2}
-//                         textAnchor="middle"
-//                         dominantBaseline="middle" // 👈 Centrado vertical exacto
-//                         fill="#fff"
-//                         fontSize={11}
-//                         fontWeight="600"
-//                         style={{ pointerEvents: 'none' }} // Evita interferir con el Tooltip
-//                     >
+//                 {depth === 1 && (
+//                     <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
 //                         {name}
 //                     </text>
 //                 )}
@@ -603,17 +691,18 @@ export const VistaPrincipal = () => {
 //         const cargarColores = async () => {
 //             try {
 //                 const response = await api.get('/ver-areas');
-//                 // Creamos un objeto de búsqueda rápida: { "Nombre Área": "#Color" }
-//                 const mapaColores = {};
-//                 response.data.forEach(area => {
-//                     mapaColores[area.nombre] = area.color; // Ajusta 'area.color' según tu BD
+//                 // Extraemos el array 'data' si viene paginado, si no, usamos el response.data directamente
+//                 const areasArray = Array.isArray(response.data) ? response.data : response.data.data;
+
+//                 const mapa = {};
+//                 areasArray.forEach(area => {
+//                     mapa[area.id] = area.color;
 //                 });
-//                 setColoresAreas(mapaColores);
+//                 setMapaAreas(mapa);
 //             } catch (error) {
 //                 console.error("Error cargando colores de áreas", error);
 //             }
 //         };
-//         cargarColores();
 //     }, []);
 
 //     // --- MEMORIZACIÓN DE DATOS (Evita parpadeos por cronómetro) ---
@@ -627,23 +716,73 @@ export const VistaPrincipal = () => {
 //     }, [resumenEstados, totalActividades]);
 
 //     const dataAreas = useMemo(() => {
-//         return Object.entries(resumenAreas).map(([area, cantidad]) => ({
-//             name: area,
-//             cantidad,
-//             porcentaje: totalActividades > 0 ? ((cantidad / totalActividades) * 100).toFixed(1) : 0
+//         if (actividadesRaw.length === 0) return [];
+
+//         const agrupado = actividadesRaw.reduce((acc, act) => {
+//             const areaId = act.area_id;
+//             const nombreArea = act.area?.nombre || 'Sin área';
+
+//             if (!acc[nombreArea]) {
+//                 acc[nombreArea] = {
+//                     cantidad: 0,
+//                     // Buscamos el color en tu constante usando el ID
+//                     fill: COLORES_POR_AREA[areaId] || "#7f8c8d"
+//                 };
+//             }
+//             acc[nombreArea].cantidad += 1;
+//             return acc;
+//         }, {});
+
+//         return Object.entries(agrupado).map(([name, info]) => ({
+//             name,
+//             cantidad: info.cantidad,
+//             fill: info.fill,
+//             porcentaje: totalActividades > 0 ? ((info.cantidad / totalActividades) * 100).toFixed(1) : 0
 //         }));
-//     }, [resumenAreas, totalActividades]);
+//     }, [actividadesRaw, totalActividades]);
+
+//     // const memoComparativa = useMemo(() => {
+//     //     return actividadesRaw.slice(-10).map(act => {
+//     //         const planeados = act.minutos_planeados || 0;
+//     //         const ejecutados = act.minutos_ejecutados || 0;
+//     //         const extra = ejecutados > planeados ? ejecutados - planeados : 0;
+//     //         const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+//     //         return {
+//     //             name: act.nombre.substring(0, 30) + '...',
+//     //             planeados, cumplidos, extra,
+//     //             porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+//     //         };
+//     //     });
+//     // }, [actividadesRaw]);
 
 //     const memoComparativa = useMemo(() => {
 //         return actividadesRaw.slice(-10).map(act => {
-//             const planeados = act.minutos_planeados || 0;
-//             const ejecutados = act.minutos_ejecutados || 0;
-//             const extra = ejecutados > planeados ? ejecutados - planeados : 0;
-//             const cumplidos = ejecutados > planeados ? planeados : ejecutados;
+//             const planeados = Number(act.minutos_planeados) || 0;
+
+//             // SUMAMOS las evidencias asociadas a esta actividad
+//             // Asumiendo que 'act.evidencias' es un array que viene de tu API
+//             const totalEjecutadoEvidencias = act.evidencias?.reduce((acc, ev) => {
+//                 return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
+//             }, 0) || 0;
+
+//             // Determinamos el extra (lo que superó la planeación)
+//             const extra = totalEjecutadoEvidencias > planeados
+//                 ? totalEjecutadoEvidencias - planeados
+//                 : 0;
+
+//             // El cumplimiento es el tiempo trabajado que NO es extra (tope de planeación)
+//             const cumplidos = totalEjecutadoEvidencias > planeados
+//                 ? planeados
+//                 : totalEjecutadoEvidencias;
+
 //             return {
-//                 name: act.nombre.substring(0, 30) + '...',
-//                 planeados, cumplidos, extra,
-//                 porcentajeCumplimiento: planeados > 0 ? ((cumplidos / planeados) * 100).toFixed(1) : 0
+//                 name: act.nombre.length > 25 ? act.nombre.substring(0, 25) + '...' : act.nombre,
+//                 planeados,
+//                 cumplidos,
+//                 extra,
+//                 porcentajeCumplimiento: planeados > 0
+//                     ? ((totalEjecutadoEvidencias / planeados) * 100).toFixed(1)
+//                     : 0
 //             };
 //         });
 //     }, [actividadesRaw]);
@@ -653,23 +792,28 @@ export const VistaPrincipal = () => {
 //     const miArea = "Desarrollo";
 
 //     const dataTreemap = useMemo(() => {
-//         const ajenas = actividadesRaw.filter(act =>
-//             act.area?.nombre && act.area.nombre !== miArea
-//         );
+//         const ajenas = actividadesRaw.filter(act => act.area?.nombre?.toUpperCase() !== "DESARROLLO");
 
 //         const agrupado = ajenas.reduce((acc, act) => {
-//             const nombreArea = act.area.nombre;
-//             acc[nombreArea] = (acc[nombreArea] || 0) + 1;
+//             const nombreArea = act.area?.nombre || 'OTRO';
+//             const areaId = act.area_id;
+
+//             if (!acc[nombreArea]) {
+//                 acc[nombreArea] = {
+//                     size: 0,
+//                     fill: COLORES_POR_AREA[areaId] || "#94a3b8"
+//                 };
+//             }
+//             acc[nombreArea].size += 1;
 //             return acc;
 //         }, {});
 
-//         return Object.entries(agrupado).map(([name, cantidad]) => ({
+//         return Object.entries(agrupado).map(([name, info]) => ({
 //             name,
-//             size: cantidad,
-//             // Buscamos el color en el estado; si no existe, usamos uno por defecto
-//             fill: coloresAreas[name] || '#f59e0b'
+//             size: info.size,
+//             fill: info.fill
 //         }));
-//     }, [actividadesRaw, miArea, coloresAreas]);
+//     }, [actividadesRaw]);
 
 //     if (loading) return <div className="loading-container"><p>Cargando dashboard...</p></div>;
 
@@ -785,9 +929,19 @@ export const VistaPrincipal = () => {
 //                     <h3>Distribución por Área</h3>
 //                     <ResponsiveContainer width="100%" height={300}>
 //                         <PieChart>
-//                             <Pie data={dataAreas} dataKey="cantidad" isAnimationActive={false} nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}>
+//                             <Pie
+//                                 data={dataAreas}
+//                                 dataKey="cantidad"
+//                                 nameKey="name"
+//                                 isAnimationActive={false}
+//                                 cx="50%"
+//                                 cy="50%"
+//                                 outerRadius={80}
+//                                 label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}
+//                             >
 //                                 {dataAreas.map((entry, index) => (
-//                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+//                                     // Aquí está el cambio clave: entry.fill
+//                                     <Cell key={`cell-${index}`} fill={entry.fill} />
 //                                 ))}
 //                             </Pie>
 //                             <Tooltip />
@@ -839,7 +993,7 @@ export const VistaPrincipal = () => {
 //                 </div>
 
 //                 <div className="grafica-ajena treemap-container">
-//                     <h3>Distribución de Tareas Ajenas (Treemap)</h3>
+//                     <h3>Distribución de Tareas Ajenas </h3>
 //                     <ResponsiveContainer width="100%" height={400}>
 //                         <Treemap
 //                             data={dataTreemap}
@@ -859,6 +1013,75 @@ export const VistaPrincipal = () => {
 //         </div>
 //     );
 // };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -30,7 +30,8 @@ export const EnviarSolucion = ({ actividad, onSuccess, userIdLogueado }) => {
             if (!minutosExtra || minutosExtra <= 0) {
                 return Swal.fire("Error", "Debes ingresar los minutos adicionales dedicados a esta corrección", "error");
             }
-        } else {
+        } 
+        else {
             if (!minutosEjecutados || minutosEjecutados <= 0) {
                 return Swal.fire("Error", "Debes ingresar los minutos ejecutados iniciales", "error");
             }
@@ -40,7 +41,7 @@ export const EnviarSolucion = ({ actividad, onSuccess, userIdLogueado }) => {
         const data = new FormData();
 
         data.append("solucion", solucion);
-        
+
         // ✅ Enviamos ambos campos. El backend decidirá cuál sumar según la lógica que vimos.
         data.append("minutos_ejecutados", Number(minutosEjecutados) || 0);
         data.append("minutos_extra", Number(minutosExtra) || 0);
@@ -85,10 +86,10 @@ export const EnviarSolucion = ({ actividad, onSuccess, userIdLogueado }) => {
     return (
         <div className="solucion-card">
 
-            <AplazarActividad 
-                actividad={actividad} 
-                onUpdate={onSuccess} 
-                userIdLogueado={userIdLogueado} 
+            <AplazarActividad
+                actividad={actividad}
+                onUpdate={onSuccess}
+                userIdLogueado={userIdLogueado}
             />
             <h3 className="solucion-title">
                 {/* ✅ Título dinámico para dar contexto al usuario */}
@@ -109,12 +110,27 @@ export const EnviarSolucion = ({ actividad, onSuccess, userIdLogueado }) => {
                     <label className="solucion-label">Min. Ejecutados: </label>
                     <input
                         type="number"
-                        value={minutosEjecutados}
+                        // 1. Mostramos el valor que viene de la base de datos O el estado local
+                        value={actividad?.minutos_ejecutados > 0 ? actividad.minutos_ejecutados : minutosEjecutados}
+
+                        // 2. Solo permitimos el cambio si en la base de datos aún es 0 o null
                         onChange={(e) => setMinutosEjecutados(e.target.value)}
+
                         className="solucion-input"
-                        disabled={yaTieneSoluciones} 
-                        placeholder={yaTieneSoluciones ? "Ya registrados" : "0"}
+
+                        // 3. Bloqueo estricto: Si ya hay minutos > 0, se deshabilita
+                        disabled={actividad?.minutos_ejecutados > 0 || yaTieneSoluciones}
+
+                        // 4. Placeholder dinámico para mejor UX
+                        placeholder={actividad?.minutos_ejecutados > 0 ? "Tiempo ya registrado" : "Registra los minutos"}
                     />
+
+                    {/* Opcional: Un pequeño aviso visual para el usuario */}
+                    {actividad?.minutos_ejecutados > 0 && (
+                        <span style={{ fontSize: '12px', color: 'gray', display: 'block' }}>
+                            * Estos minutos ya fueron reportados y no se pueden editar.
+                        </span>
+                    )}
                 </div>
                 {/* ✅ Si ya existen soluciones, el usuario debe usar este campo obligatoriamente. */}
                 <div>

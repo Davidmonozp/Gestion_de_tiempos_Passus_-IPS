@@ -323,11 +323,11 @@
  /* Estilos de cumplidas a tiempo o fuera del tiempo */
  .cumplimiento-stats {
      display: grid;
-     grid-template-columns: repeat(2, 1fr);
+     grid-template-columns: repeat(3, 1fr);
      grid-column: span 2;
      gap: 20px;
      margin-top: 20px;
-     width: 50%;
+     width: 80%;
      /* Agrega estas dos líneas */
      margin-left: auto;
      margin-right: auto;
@@ -335,17 +335,17 @@
 
  /* Estilo base para ambas tarjetas */
  .stat-card {
-       border-radius: 1.5rem;
-    backdrop-filter: blur(100px);
-    padding: 15px;
-    text-align: center;
-    color: white;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0, 0, 0, 0.07);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+     border-radius: 1.5rem;
+     backdrop-filter: blur(100px);
+     padding: 15px;
+     text-align: center;
+     color: white;
+     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0, 0, 0, 0.07);
+     transition: transform 0.3s ease, box-shadow 0.3s ease;
+     height: 100%;
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
  }
 
  .stat-card h5 {
@@ -383,7 +383,9 @@
      color: #ffffff;
  }
 
-
+ .card-warning {
+     background-image: linear-gradient(to right, #f83600 0%, #f9d423 100%);
+ }
 
  @media (max-width: 900px) {
      .parent {

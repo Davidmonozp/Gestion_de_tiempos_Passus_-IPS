@@ -1,0 +1,249 @@
+/* =========================================
+   PALETA Y ESTILOS BASE PASSUS
+   ========================================= */
+:root {
+    --passus-blue: #0056b3;
+    --passus-light-blue: #e7f1ff;
+    --passus-text: #334155;
+    --passus-border: #e2e8f0;
+    --passus-bg-input: #f8fafc;
+    --passus-error: #ef4444;
+}
+
+.editar-usuario-container {
+    width: 99%;
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #edf2f7;
+    margin-bottom: 47px;
+    margin-top: 20px;
+}
+
+.passus-main-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.passus-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+/* =========================================
+   GRILLAS Y ESTRUCTURA (CORREGIDO)
+   ========================================= */
+.form-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+/* REGLA MAESTRA PARA ANCHO COMPLETO */
+.form-grid-4 .full-width,
+.form-grid-3 .full-width,
+.form-grid-2 .full-width,
+.fields-grid .full-width {
+    grid-column: 1 / -1 !important;
+    /* Ocupa todas las columnas disponibles */
+    width: 100% !important;
+    display: block !important;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* =========================================
+   INPUTS Y CAMPOS ESPECIALES
+   ========================================= */
+.passus-input,
+.passus-select {
+    padding: 10px 14px;
+    border: 1px solid var(--passus-border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: white;
+    transition: all 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+    /* Evita que el padding rompa el ancho */
+}
+
+/* ESTO HACE QUE EL INPUT DE CONTRASEÑA SEA LARGO */
+.passus-input-full {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: block !important;
+}
+
+.passus-input:focus,
+.passus-select:focus {
+    outline: none;
+    border-color: var(--passus-blue);
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
+}
+
+/* CONTENEDOR DEL ICONO */
+.input-with-icon {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+
+
+.icon-inside {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* =========================================
+   ERRORES Y VALIDACIÓN
+   ========================================= */
+.error-msg {
+    color: var(--passus-error);
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+/* =========================================
+   ACCIONES Y BOTONES
+   ========================================= */
+.passus-form-actions {
+    margin-top: 3rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--passus-border);
+}
+
+.btn-submit {
+    padding: 10px 24px;
+    background: var(--passus-blue);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-submit:hover {
+    opacity: 0.9;
+}
+
+/* ANIMACIONES */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+.fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* Crea las 2 columnas */
+    gap: 15px;
+    /* Espaciado opcional */
+}
+
+.full-width {
+    grid-column: span 2;
+    /* Esto hace que ocupe las dos columnas */
+}
+
+/* 3. El input específico 'form-control-full' debe estirarse */
+.form-control-full {
+    width: 57%;
+    padding: 12px 12px 12px 12px;
+    /* Espacio para el icono */
+    box-sizing: border-box;
+    /* Evita que el padding lo saque del borde */
+}
+
+/* 4. El icono debe quedar flotando a la derecha */
+.icon-inside {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    /* Permite clickear el input a través del icono */
+}
+
+/* RESPONSIVO */
+@media (max-width: 768px) {
+
+    .form-grid-4,
+    .form-grid-3,
+    .form-grid-2 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* RESPONSIVE */
+@media (min-width: 300px) and (max-width: 767px) {
+    .fields-grid {
+        grid-template-columns: repeat(1, 1fr);
+        gap: 5px;
+    }
+
+    .full-width {
+        grid-column: span 1;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1050px) {
+    .fields-grid {
+        grid-template-columns: repeat(1, 1fr);
+        gap: 5px;
+    }
+}

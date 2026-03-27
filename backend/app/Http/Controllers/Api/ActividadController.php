@@ -14,12 +14,15 @@ use Illuminate\Support\Facades\Mail;
 
 class ActividadController extends Controller
 {
+
+
     // public function index()
     // {
     //     try {
     //         /** @var \App\Models\User $user */
     //         $user = Auth::user();
 
+    //         // 1. Iniciamos el query con sus relaciones
     //         $query = Actividad::with([
     //             'area',
     //             'asignadoA',
@@ -28,39 +31,41 @@ class ActividadController extends Controller
     //             'evidencias'
     //         ]);
 
-    //         // 👑 Administrador ve todo
+    //         // 👑 Administrador: Ve todo (no aplicamos filtros adicionales)
     //         if ($user->hasRole('Administrador')) {
-
-    //             $actividades = $query->get();
+    //             // Se queda igual
     //         }
 
-    //         // 👔 JefeInmediato ve actividades de su área
+    //         // 👔 JefeInmediato: Ve actividades de personas que pertenecen a su área
     //         elseif ($user->hasRole('JefeInmediato')) {
+    //             // Obtenemos los IDs de las áreas a las que pertenece el Jefe
+    //             $misAreasIds = $user->areas->pluck('id');
 
-    //             $areasIds = $user->areas->pluck('id');
+    //             if ($misAreasIds->isNotEmpty()) {
+    //                 // Buscamos los IDs de todos los usuarios que pertenecen a esas áreas
+    //                 // Esto incluye al mismo jefe y a sus subordinados
+    //                 $usuariosDeMisAreas = \App\Models\User::whereHas('areas', function ($q) use ($misAreasIds) {
+    //                     $q->whereIn('areas.id', $misAreasIds);
+    //                 })->pluck('id');
 
-    //             if ($areasIds->isNotEmpty()) {
-    //                 $query->whereIn('area_id', $areasIds);
+    //                 // Filtramos las actividades donde el "asignado_a" esté en esa lista de usuarios
+    //                 $query->whereIn('asignado_a', $usuariosDeMisAreas);
     //             } else {
+    //                 // Si el jefe no tiene área asignada, no ve nada
     //                 $query->whereRaw('1 = 0');
     //             }
-
-    //             $actividades = $query->get();
     //         }
 
-    //         // 👤 Usuario ve solo las asignadas a él
+    //         // 👤 Usuario: Ve solo las asignadas a él
     //         else {
-
     //             $query->where('asignado_a', $user->id);
-    //             $actividades = $query->get();
     //         }
 
-    //         return response()->json([
-    //             'success' => true,
-    //             'data' => $actividades
-    //         ], 200);
-    //     } catch (\Exception $e) {
+    //         // 2. Ejecutamos la paginación al final
+    //         $actividades = $query->latest()->paginate(10);
 
+    //         return response()->json($actividades);
+    //     } catch (\Exception $e) {
     //         return response()->json([
     //             'success' => false,
     //             'message' => 'Error al obtener las actividades',
@@ -69,13 +74,15 @@ class ActividadController extends Controller
     //     }
     // }
 
-    public function index()
+
+
+
+    public function index(Request $request) // 👈 Agregamos el Request para capturar el filtro
     {
         try {
             /** @var \App\Models\User $user */
             $user = Auth::user();
 
-            // 🔥 Primero construimos el query
             $query = Actividad::with([
                 'area',
                 'asignadoA',
@@ -84,34 +91,45 @@ class ActividadController extends Controller
                 'evidencias'
             ]);
 
-            // 👑 Administrador ve todo
+            // Capturamos el filtro que viene de React
+            $verTodoElArea = $request->query('todo_el_area', 0);
+
+            // 👑 Administrador: Ve todo
             if ($user->hasRole('Administrador')) {
-                // no se aplica filtro
+                // Sin filtros adicionales
             }
 
-            // 👔 JefeInmediato ve actividades de su área
+            // 👔 JefeInmediato: Lógica condicional
             elseif ($user->hasRole('JefeInmediato')) {
 
-                $areasIds = $user->areas->pluck('id');
+                if ($verTodoElArea == 1) {
+                    // 🟢 OPCIÓN: VER TODO EL ÁREA
+                    $misAreasIds = $user->areas->pluck('id');
 
-                if ($areasIds->isNotEmpty()) {
-                    $query->whereIn('area_id', $areasIds);
+                    if ($misAreasIds->isNotEmpty()) {
+                        $usuariosDeMisAreas = \App\Models\User::whereHas('areas', function ($q) use ($misAreasIds) {
+                            $q->whereIn('areas.id', $misAreasIds);
+                        })->pluck('id');
+
+                        $query->whereIn('asignado_a', $usuariosDeMisAreas);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
                 } else {
-                    $query->whereRaw('1 = 0');
+                    // 🔵 OPCIÓN POR DEFECTO: VER SOLO MIS ACTIVIDADES
+                    $query->where('asignado_a', $user->id);
                 }
             }
 
-            // 👤 Usuario ve solo las asignadas a él
+            // 👤 Usuario: Ve solo las asignadas a él
             else {
                 $query->where('asignado_a', $user->id);
             }
 
-            // 🔥 AL FINAL se pagina
-            $actividades = $query->paginate(10);
+            $actividades = $query->latest()->paginate(10);
 
             return response()->json($actividades);
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener las actividades',
@@ -119,8 +137,6 @@ class ActividadController extends Controller
             ], 500);
         }
     }
-
-
     public function show($id)
     {
         try {
@@ -129,7 +145,7 @@ class ActividadController extends Controller
 
             $actividad = Actividad::with([
                 'area',
-                'asignadoA',
+                'asignadoA.areas', // Cargamos las áreas del asignado para validar
                 'asignadoPor',
                 'aprobadaPor',
                 'evidencias',
@@ -144,18 +160,23 @@ class ActividadController extends Controller
                 return response()->json($actividad);
             }
 
-            // 👔 JefeInmediato solo si pertenece a su área
+            // 👔 JefeInmediato: Puede ver si el asignado pertenece a su área
             if ($user->hasRole('JefeInmediato')) {
-                if ($user->areas->pluck('id')->contains($actividad->area_id)) {
+                $misAreasIds = $user->areas->pluck('id');
+
+                // Obtenemos las áreas del usuario que tiene la actividad asignada
+                $areasDelAsignado = $actividad->asignadoA->areas->pluck('id');
+
+                // Si hay alguna intersección entre mis áreas y las del usuario asignado, tengo permiso
+                if ($misAreasIds->intersect($areasDelAsignado)->isNotEmpty()) {
                     return response()->json($actividad);
                 }
             }
 
             // 👤 Usuario solo si está asignada a él
-            if ($user->hasRole('Usuario') && $actividad->asignado_a == $user->id) {
+            if ($actividad->asignado_a == $user->id) {
                 return response()->json($actividad);
             }
-
 
             // ❌ Si no cumple nada
             return response()->json([
@@ -163,7 +184,6 @@ class ActividadController extends Controller
                 'message' => 'No tiene permiso para ver esta actividad'
             ], 403);
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener la actividad',
@@ -226,15 +246,15 @@ class ActividadController extends Controller
             if (!$user->hasRole('Administrador')) {
 
                 // Restricción para JefeInmediato
-                if ($user->hasRole('JefeInmediato')) {
-                    $areasIds = $user->areas()->pluck('areas.id');
-                    if (!$areasIds->contains($request->area_id)) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Como Jefe Inmediato, no puede crear actividades fuera de sus áreas asignadas.'
-                        ], 403);
-                    }
-                }
+                // if ($user->hasRole('JefeInmediato')) {
+                //     $areasIds = $user->areas()->pluck('areas.id');
+                //     if (!$areasIds->contains($request->area_id)) {
+                //         return response()->json([
+                //             'success' => false,
+                //             'message' => 'Como Jefe Inmediato, no puede crear actividades fuera de sus áreas asignadas.'
+                //         ], 403);
+                //     }
+                // }
 
                 // Restricción para Usuario común
                 if ($user->hasRole('Usuario')) {
@@ -264,7 +284,12 @@ class ActividadController extends Controller
                 }
             }
 
+            $estadoFinal = $request->estado;
 
+            // Si se enviaron minutos ejecutados mayores a 0, forzamos el estado a 'Finalizada'
+            if ($request->filled('minutos_ejecutados') && $request->minutos_ejecutados > 0) {
+                $estadoFinal = 'Finalizada';
+            }
             // Crear actividad
             $actividad = Actividad::create([
                 'nombre' => $request->nombre,
@@ -274,7 +299,7 @@ class ActividadController extends Controller
                 'asignado_a' => $request->asignado_a,
                 'minutos_planeados' => $request->minutos_planeados ?? 0,
                 'minutos_ejecutados' => $request->minutos_ejecutados ?? 0,
-                'estado' => $request->estado,
+                'estado' => $estadoFinal,
                 'fecha_finalizacion' => $request->fecha_finalizacion,
                 'requiere_aprobacion' => $request->requiere_aprobacion ?? false,
                 'notificar_asignacion' => $request->notificar_asignacion ?? true,
@@ -321,100 +346,96 @@ class ActividadController extends Controller
     }
 
 
-    public function update(Request $request, $id)
-    {
-        try {
-            /** @var \App\Models\User $user */
-            $user = Auth::user();
-            $actividad = Actividad::findOrFail($id);
+public function update(Request $request, $id)
+{
+    try {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $actividad = Actividad::findOrFail($id);
 
-            // 1. 🛑 RESTRICCIÓN DE ESTADO: Solo editar si NO está Finalizada o en Espera
-            $estadosRestringidos = ['Finalizada', 'Espera_aprobacion'];
-            if (in_array($actividad->estado, $estadosRestringidos)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "No se puede editar una actividad con estado: {$actividad->estado}."
-                ], 403);
-            }
-
-            // 2. VALIDACIÓN
-            $request->validate([
-                'nombre' => 'sometimes|required|string|max:255',
-                'descripcion' => 'nullable|string',
-                'area_id' => 'sometimes|required|exists:areas,id',
-                'asignado_a' => 'sometimes|required|exists:users,id',
-                // Eliminamos 'estado' de la validación si no quieres que el usuario lo cambie manualmente
-                'archivos.*' => 'nullable|file|max:10240',
-                'requiere_aprobacion' => 'nullable',
-                'solucion' => 'nullable|string',
-            ]);
-
-            // 3. 🔒 SEGURIDAD POR ROL
-            if (!$user->hasRole('Administrador')) {
-                if ($user->hasRole('JefeInmediato')) {
-                    $areasIds = $user->areas()->pluck('areas.id');
-                    if ($request->has('area_id') && !$areasIds->contains($request->area_id)) {
-                        return response()->json(['success' => false, 'message' => 'No puede mover actividades a áreas no asignadas.'], 403);
-                    }
-                    if (!$areasIds->contains($actividad->area_id)) {
-                        return response()->json(['success' => false, 'message' => 'No tiene permisos sobre esta actividad.'], 403);
-                    }
-                }
-                if ($user->hasRole('Usuario') && $actividad->asignado_a != $user->id) {
-                    return response()->json(['success' => false, 'message' => 'No tiene permisos para editar esta actividad.'], 403);
-                }
-            }
-
-            // 4. GESTIÓN DE ARCHIVOS
-            $archivosFinales = [];
-            $inputArchivos = $request->input('archivos');
-            if ($inputArchivos) {
-                $existentes = is_string($inputArchivos) ? json_decode($inputArchivos, true) : $inputArchivos;
-                if (is_array($existentes)) {
-                    foreach ($existentes as $arc) {
-                        if (isset($arc['path'])) {
-                            $archivosFinales[] = [
-                                'path' => $arc['path'],
-                                'original_name' => $arc['original_name'] ?? 'archivo_existente',
-                            ];
-                        }
-                    }
-                }
-            }
-
-            if ($request->hasFile('archivos')) {
-                foreach ($request->file('archivos') as $archivo) {
-                    $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
-                    $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
-                    $archivosFinales[] = [
-                        'path' => 'uploads/actividades/' . $nombreArchivo,
-                        'original_name' => $archivo->getClientOriginalName(),
-                    ];
-                }
-            }
-
-            // 5. PREPARAR DATOS (Quitamos la lógica que forzaba el cambio de estado)
-            // Usamos except 'estado' para asegurar que el estado de la DB no cambie por el request
-            $data = $request->except(['archivos', 'estado']);
-            $data['archivos'] = $archivosFinales;
-
-            // 6. ACTUALIZAR
-            $actividad->update($data);
-
-            // 7. CARGAR RELACIONES Y RESPONDER
-            $actividad->load(['area', 'asignadoA', 'asignadoPor', 'evidencias']);
-
+        // 1. 🛑 RESTRICCIÓN DE ESTADO
+        $estadosRestringidos = ['Finalizada', 'Espera_aprobacion'];
+        if (in_array($actividad->estado, $estadosRestringidos)) {
             return response()->json([
-                'success' => true,
-                'message' => 'Actividad actualizada correctamente',
-                'data' => $actividad
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+                'success' => false,
+                'message' => "No se puede editar una actividad con estado: {$actividad->estado}."
+            ], 403);
         }
+
+        // 2. VALIDACIÓN (Aseguramos que area_id sea opcional pero válido)
+        $request->validate([
+            'area_id' => 'nullable|exists:areas,id',
+            'asignado_a' => 'sometimes|required|exists:users,id',
+            'nombre' => 'sometimes|required|string|max:255',
+        ]);
+
+        // 3. 🔒 SEGURIDAD POR ROL (JefeInmediato = Usuario)
+        if (!$user->hasRole('Administrador')) {
+            if (($user->hasRole('JefeInmediato') || $user->hasRole('Usuario')) && $actividad->asignado_a != $user->id) {
+                return response()->json(['success' => false, 'message' => 'No tiene permisos para editar esta actividad.'], 403);
+            }
+        }
+
+        // 4. GESTIÓN DE ARCHIVOS (Mantenemos tu lógica original)
+        $archivosFinales = [];
+        $inputArchivos = $request->input('archivos');
+        if ($inputArchivos) {
+            $existentes = is_string($inputArchivos) ? json_decode($inputArchivos, true) : $inputArchivos;
+            if (is_array($existentes)) {
+                foreach ($existentes as $arc) {
+                    if (isset($arc['path'])) {
+                        $archivosFinales[] = $arc;
+                    }
+                }
+            }
+        }
+
+        if ($request->hasFile('archivos')) {
+            foreach ($request->file('archivos') as $archivo) {
+                $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
+                $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
+                $archivosFinales[] = [
+                    'path' => 'uploads/actividades/' . $nombreArchivo,
+                    'original_name' => $archivo->getClientOriginalName(),
+                ];
+            }
+        }
+
+        // 5. 🛠️ SOLUCIÓN AL PROBLEMA DEL ÁREA
+        // Extraemos todos los datos excepto archivos
+        $data = $request->except(['archivos']);
+        
+        // Sincronizamos los campos básicos
+        $actividad->fill($data);
+
+        // FORZADO MANUAL: Si area_id viene en el request, lo asignamos directamente
+        // Esto soluciona problemas si el FormData lo envía como string o dentro de otro campo
+        if ($request->has('area_id')) {
+            $actividad->area_id = $request->input('area_id');
+        } 
+        // A veces React envía el objeto 'area' completo, intentamos extraer el ID de ahí también
+        elseif ($request->has('area') && is_array($request->input('area'))) {
+            $actividad->area_id = $request->input('area')['id'];
+        }
+
+        $actividad->archivos = $archivosFinales;
+
+        // 6. GUARDADO
+        $actividad->save();
+
+        // 7. RESPUESTA
+        $actividad->load(['area', 'asignadoA', 'asignadoPor']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Actividad actualizada con éxito',
+            'data' => $actividad
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
     }
+}
 
 
     // public function update(Request $request, $id)

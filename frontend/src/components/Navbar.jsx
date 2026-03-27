@@ -4,6 +4,7 @@ import "./styles/Navbar.css";
 import { Notificationes } from "./Notificaciones";
 import { useAuth } from "../context/AuthContext";
 import { FloatingTimer } from "./FloatingTimer";
+import { tienePermiso } from "../utils/Permisos";
 
 export const Navbar = () => {
     // 2. Trae tiempoTranscurrido y jornadaActiva desde el context
@@ -52,30 +53,35 @@ export const Navbar = () => {
                     {/* <Link to="/vista-principal" onClick={closeMenu}>Reportes</Link> */}
                     {/* --- DROPDOWN DE CONFIGURACIÓN --- */}
                     <div className="user-dropdown">
-                        <button
-                            className="user-button"
-                            onClick={() => {
-                                setOpenConfig(!openConfig);
-                                setOpenUser(false);
-                            }}
-                        >
-                            Configuración ▾
-                        </button>
 
-                        {openConfig && (
-                            <div className="user-menu">
-                                <Link
-                                    to="/usuarios"
-                                    className="menu-item"
+                        {/* {tienePermiso(['Administrador', 'JefeInmediato']) && (
+                            <> */}
+                                <button
+                                    className="user-button"
                                     onClick={() => {
-                                        setOpenConfig(false);
-                                        closeMenu();
+                                        setOpenConfig(!openConfig);
+                                        setOpenUser(false);
                                     }}
                                 >
-                                    Usuarios
-                                </Link>
-                            </div>
-                        )}
+                                    Configuración ▾
+                                </button>
+
+                                {openConfig && (
+                                    <div className="user-menu">
+                                        <Link
+                                            to="/usuarios"
+                                            className="menu-item"
+                                            onClick={() => {
+                                                setOpenConfig(false);
+                                                closeMenu();
+                                            }}
+                                        >
+                                            Usuarios
+                                        </Link>
+                                    </div>
+                                )}
+                            {/* </>
+                        )} */}
                     </div>
 
                     <Notificationes />

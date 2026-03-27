@@ -39,7 +39,7 @@
         }
 
         td {
-            padding: 0;
+                padding: 27px 0 27px 0;
         }
 
         p {

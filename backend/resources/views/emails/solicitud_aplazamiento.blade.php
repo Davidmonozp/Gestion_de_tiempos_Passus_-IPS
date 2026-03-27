@@ -29,7 +29,7 @@
         }
 
         td {
-            padding: 0;
+            padding: 27px 0 27px 0;
         }
 
         p {
@@ -235,7 +235,8 @@
                                 <ul>
                                     <li><strong>Solicitante:</strong> {{ $nombreSolicitante }}</li>
                                     <li><strong>Motivo:</strong> {{ $solicitud->motivo }}</li>
-                                    <li><strong>Fecha de retoma:</strong> <span class="badge">{{ $fecha }}</span></li>
+                                    <li><strong>Fecha de retoma:</strong> <span
+                                            class="badge">{{ $fecha }}</span></li>
                                 </ul>
                             </div>
 

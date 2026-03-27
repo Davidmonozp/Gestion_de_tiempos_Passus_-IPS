@@ -71,7 +71,26 @@ export const VerActividad = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setForm({ ...form, [name]: type === "checkbox" ? (checked ? 1 : 0) : value });
+
+        setForm(prev => {
+            const newState = { ...prev };
+
+            // Si estamos cambiando el area_id, eliminamos el objeto 'area' viejo
+            // para que no confunda a la lógica de handleUpdate
+            if (name === 'area_id') {
+                delete newState.area;
+            }
+
+            // Lo mismo para el usuario asignado
+            if (name === 'asignado_a') {
+                delete newState.asignado_a_user;
+            }
+
+            return {
+                ...newState,
+                [name]: type === "checkbox" ? (checked ? 1 : 0) : value
+            };
+        });
     };
 
     const handleFilesChange = (e) => {
@@ -101,28 +120,40 @@ export const VerActividad = () => {
         });
 
         const data = new FormData();
+        data.append('_method', 'PUT');
 
         // 2. PROCESAR CAMPOS DE TEXTO Y RELACIONES
         Object.keys(form).forEach(key => {
             const value = form[key];
 
-            // Manejo específico de IDs (Relaciones)
-            if (key === 'asignado_a' && value?.id) {
-                data.append('asignado_a', value.id);
+            // 1. Manejo de Usuarios (Asignado a)
+            if (key === 'asignado_a') {
+                const userId = value?.id || value;
+                if (userId) data.append('asignado_a', userId);
             }
+
+            // 2. Manejo de Áreas (EL PUNTO CLAVE)
+            // Buscamos el ID ya sea que esté en 'area_id' o dentro del objeto 'area'
             else if (key === 'area_id' || key === 'area') {
-                // Aseguramos enviar el ID del área, ya sea que venga como objeto o ID
                 const areaId = value?.id || value;
-                if (areaId) data.append('area_id', areaId);
+
+                // Usamos una variable de control para enviarlo solo una vez
+                // Si el key es 'area_id', lo mandamos. Si es 'area', solo si no existe 'area_id' en el form
+                if (areaId && !data.has('area_id')) {
+                    data.append('area_id', areaId);
+                }
             }
-            // Manejo de Booleanos (Laravel prefiere 1/0 en FormData)
+
+            // 3. Manejo de Booleanos
             else if (['requiere_aprobacion', 'notificar_asignacion'].includes(key)) {
                 data.append(key, value ? "1" : "0");
             }
-            // EXCLUSIONES: No enviamos objetos pesados ni archivos aquí
+
+            // 4. EXCLUSIONES Y RESTO DE CAMPOS
             else if (![
-                'archivos', 'archivos_solucion', 'area', 'asignado_por',
-                'asignado_a_user', 'evidencias', 'observaciones', 'aprobada_por'
+                'archivos', 'archivos_solucion', 'asignado_por',
+                'asignado_a_user', 'evidencias', 'observaciones', 'aprobada_por',
+                'area', 'area_id' // 👈 Importante: los excluimos aquí porque ya los manejamos arriba
             ].includes(key)) {
                 if (value !== null && value !== undefined) {
                     data.append(key, value);
@@ -285,10 +316,11 @@ export const VerActividad = () => {
                                 {editMode ? (
                                     <select
                                         name="area_id"
-                                        // Esto asegura que el select muestre el área actual o la nueva que elijas
+                                        // Usamos prioritariamente area_id del form, si no existe, el id del objeto area
                                         value={form.area_id || form.area?.id || ""}
                                         onChange={handleChange}
                                     >
+                                        <option value="">Seleccione un área</option> {/* Siempre es bueno tener una opción vacía */}
                                         {areas.map(a => (
                                             <option key={a.id} value={a.id}>{a.nombre}</option>
                                         ))}
@@ -341,7 +373,13 @@ export const VerActividad = () => {
                             <div>
                                 <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Mins. Ejecutados:</label>
                                 {editMode ? (
-                                    <input type="number" name="minutos_planeados" value={form.minutos_ejecutados} onChange={handleChange} style={{ width: "100%" }} />
+                                    <input
+                                        type="number"
+                                        name="minutos_ejecutados"
+                                        value={form.minutos_ejecutados}
+                                        readOnly // <--- Esto bloquea la edición
+                                        style={{ width: "100%", backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
+                                    />
                                 ) : <p>{form.minutos_ejecutados} min </p>}
                             </div>
                             <div>
@@ -357,11 +395,13 @@ export const VerActividad = () => {
                         </div>
 
                         <div className="checkbox-group">
-                            <label style={{ marginRight: "20px" }}>
-                                <input type="checkbox" name="requiere_aprobacion"
-                                    checked={!!form.requiere_aprobacion} onChange={handleChange} disabled={!editMode} />
-                                Requiere Aprobación
-                            </label>
+                            {tienePermiso(["JefeInmediato", "Administrador"]) && (
+                                <label style={{ marginRight: "20px" }}>
+                                    <input type="checkbox" name="requiere_aprobacion"
+                                        checked={!!form.requiere_aprobacion} onChange={handleChange} disabled={!editMode} />
+                                    Requiere Aprobación
+                                </label>
+                            )}
                             <label>
                                 <input type="checkbox" name="notificar_asignacion" checked={!!form.notificar_asignacion} onChange={handleChange} disabled={!editMode} />
                                 Notificar Asignación
@@ -447,7 +487,7 @@ export const VerActividad = () => {
                         onUpdate={cargarDetalles}
                     />
 
-                    
+
                     {/* --- LÓGICA DE REVISIÓN DEL JEFE --- */}
                     {tienePermiso(['JefeInmediato', 'Administrador']) && form.estado === 'Espera_aprobacion' && (
                         <RevisarActividad
@@ -456,7 +496,7 @@ export const VerActividad = () => {
                         />
                     )}
 
-                    {tienePermiso(['Usuario']) && (
+                    {tienePermiso(['Usuario', 'JefeInmediato']) && (
                         <EnviarSolucion
                             actividad={form}
                             onSuccess={cargarDetalles}

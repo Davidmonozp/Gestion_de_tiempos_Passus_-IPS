@@ -34,6 +34,9 @@ Route::middleware('auth:api')->group(function () {
     // Rutas de Usuario
     Route::post('/registro-usuario', [UsuarioController::class, 'store']);
     Route::get('/ver-usuarios', [UsuarioController::class, 'index']);
+    Route::put('/editar-usuario/{id}', [UsuarioController::class, 'update']);
+    Route::get('/ver-usuario/{id}', [UsuarioController::class, 'show']);
+
 
     // Rutas de Actividades y Evidencias
     Route::get('/ver-actividades', [ActividadController::class, 'index']);

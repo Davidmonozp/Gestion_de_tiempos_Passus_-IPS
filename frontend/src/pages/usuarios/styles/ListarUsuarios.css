@@ -371,6 +371,25 @@ h3 {
     color: #ef4444;
 }
 
+/* Asegura que las acciones siempre sean visibles */
+.td-actions {
+    white-space: nowrap;
+    width: 1%; /* Fuerza a la celda a ocupar solo lo mínimo necesario */
+    text-align: right;
+}
+
+/* Controla el ancho de la celda de áreas */
+.td-areas {
+    max-width: 200px; /* Ajusta según tu diseño */
+    overflow: hidden;
+}
+
+/* Estilo para el chip de "ver más" */
+.more-areas:hover {
+    background-color: #ddd !important;
+    color: #333 !important;
+}
+
 @media (min-width: 200px) and (max-width: 500px) {
     .container-usuarios {
         display: grid;

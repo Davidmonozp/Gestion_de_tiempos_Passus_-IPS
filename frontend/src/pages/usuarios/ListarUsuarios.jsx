@@ -9,6 +9,7 @@ import { Navbar } from '../../components/Navbar';
 import { Sidebar } from '../../components/Sidebar';
 import { Version } from '../../components/Version';
 import { useNavigate } from 'react-router-dom';
+import { tienePermiso } from '../../utils/Permisos';
 
 export const ListarUsuarios = () => {
     const [usuarios, setUsuarios] = useState([]);
@@ -16,7 +17,7 @@ export const ListarUsuarios = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
-  
+
     const COLORES_POR_AREA = {
         1: "#3498db", // ADMINISTRATIVA
         2: "#2ecc71", // ADMISIONES
@@ -55,8 +56,8 @@ export const ListarUsuarios = () => {
         }
         return "#cccccc"; // Color por defecto si no tiene áreas
     };
-      const goToCreate = () => {
-        navigate('/crear-usuario'); 
+    const goToCreate = () => {
+        navigate('/crear-usuario');
     };
 
 
@@ -88,9 +89,12 @@ export const ListarUsuarios = () => {
                                         <List size={20} />
                                     </button>
                                 </div>
-                                <button className="btn-new-user" onClick={goToCreate}>
-                                    <i className="fa-solid fa-user-plus"></i>
-                                </button>
+
+                                {tienePermiso(['Administrador']) && (
+                                    <button className="btn-new-user" onClick={goToCreate}>
+                                        <i className="fa-solid fa-user-plus"></i>
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -124,8 +128,16 @@ export const ListarUsuarios = () => {
                                                 </div>
                                             </div>
                                             <div className="user-card-actions">
-                                                <button className="btn-icon-view"><i className="fa-solid fa-eye"></i></button>
-                                                <button className="btn-icon-edit"><i className="fa-regular fa-pen-to-square"></i></button>
+                                                <button className="btn-icon-view"
+                                                    onClick={() => navigate(`/editar-usuario/${u.id}`)}>
+                                                    <i className="fa-solid fa-eye"></i>
+                                                </button>
+                                                <button
+                                                    className="btn-icon-edit"
+                                                    onClick={() => navigate(`/editar-usuario/${u.id}`)}
+                                                >
+                                                    <i className="fa-regular fa-pen-to-square"></i>
+                                                </button>
                                                 <button className="btn-icon-delete"><i className="fa-regular fa-trash-can"></i></button>
                                             </div>
                                         </div>
@@ -160,16 +172,37 @@ export const ListarUsuarios = () => {
                                                     </td>
                                                     <td className="email-cell">{u.email}</td>
                                                     <td>
-                                                        <div className="td-areas">
-                                                            {u.areas.map(a => (
+                                                        <div className="td-areas" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '250px' }}>
+                                                            {u.areas.slice(0, 5).map(a => (
                                                                 <span key={a.id} className="chip" style={{
                                                                     backgroundColor: `${COLORES_POR_AREA[a.id]}15`,
                                                                     color: COLORES_POR_AREA[a.id],
-                                                                    border: `1px solid ${COLORES_POR_AREA[a.id]}40`
+                                                                    border: `1px solid ${COLORES_POR_AREA[a.id]}40`,
+                                                                    fontSize: '11px',
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '12px',
+                                                                    whiteSpace: 'nowrap'
                                                                 }}>
                                                                     {a.nombre}
                                                                 </span>
                                                             ))}
+
+                                                            {u.areas.length > 3 && (
+                                                                <span
+                                                                    className="chip more-areas"
+                                                                    title={u.areas.slice(5).map(a => a.nombre).join(', ')}
+                                                                    style={{
+                                                                        backgroundColor: '#eee',
+                                                                        color: '#666',
+                                                                        fontSize: '11px',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '12px',
+                                                                        cursor: 'help'
+                                                                    }}
+                                                                >
+                                                                    +{u.areas.length - 3}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td>
@@ -178,8 +211,16 @@ export const ListarUsuarios = () => {
                                                         </span>
                                                     </td>
                                                     <td className="td-actions">
-                                                        <button className="action-btn view"><Eye size={16} /></button>
-                                                        <button className="action-btn edit"><Edit2 size={16} /></button>
+                                                        <button className="action-btn view"
+                                                            onClick={() => navigate(`/editar-usuario/${u.id}`)}>
+                                                            <Eye size={16} />
+                                                        </button>
+                                                        <button
+                                                            className="action-btn edit"
+                                                            onClick={() => navigate(`/editar-usuario/${u.id}`)}
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
                                                         <button className="action-btn delete"><Trash2 size={16} /></button>
                                                     </td>
                                                 </tr>

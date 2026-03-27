@@ -15,6 +15,15 @@ class UsuarioController extends Controller
 {
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasRole('Administrador')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No tienes permisos de administrador para realizar esta acción.'
+            ], 403);
+        }
         // 1. Validación (Mantenemos tu lógica)
         $validator = Validator::make($request->all(), [
             'nombre'           => 'required|string|max:255',
@@ -89,6 +98,156 @@ class UsuarioController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Error al procesar el registro: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        /** @var \App\Models\User $admin */
+        $admin = Auth::user();
+
+        // 1. Verificación de permisos
+        if (!$admin->hasRole('Administrador')) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No tienes permisos de administrador para realizar esta acción.'
+            ], 403);
+        }
+
+        $user = User::findOrFail($id);
+
+        // 2. Validación
+        $validator = Validator::make($request->all(), [
+            'nombre'           => 'required|string|max:255',
+            'segundo_nombre'   => 'nullable|string|max:255',
+            'apellido'         => 'required|string|max:255',
+            'segundo_apellido' => 'required|string|max:255',
+            'tipo_documento'   => 'required|string',
+            // Ignoramos el ID actual para que no falle la validación de unique
+            'numero_documento' => 'required|string|unique:users,numero_documento,' . $id,
+            'nombre_usuario'   => 'required|string|unique:users,nombre_usuario,' . $id,
+            'email'            => 'required|email',
+            'password'         => 'nullable|string|min:6', // Opcional en update
+            'cargo'            => 'required|string',
+            'rol_nombre'       => 'required|exists:roles,name',
+            'area_id'          => 'required|array',
+            'area_id.*'        => 'exists:areas,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // 3. Actualizar datos básicos
+            $data = $request->only([
+                'nombre',
+                'segundo_nombre',
+                'apellido',
+                'segundo_apellido',
+                'tipo_documento',
+                'numero_documento',
+                'nombre_usuario',
+                'email',
+                'cargo'
+            ]);
+
+            // Solo actualizar contraseña si se envió una nueva
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            }
+
+            $user->update($data);
+
+            // 4. Actualizar Rol (Spatie)
+            $rolEncontrado = \Spatie\Permission\Models\Role::where('name', $request->rol_nombre)
+                ->where('guard_name', 'api')
+                ->first();
+
+            if (!$rolEncontrado) {
+                throw new Exception("El rol '{$request->rol_nombre}' no está configurado correctamente para la API.");
+            }
+
+            // syncRoles elimina los anteriores y asigna el nuevo
+            $user->syncRoles([$rolEncontrado]);
+
+            // 5. Lógica de relación con el Área (Pivot)
+            // Determinamos el tipo basado en el nuevo rol
+            $tipoRelacion = ($request->rol_nombre === 'Usuario') ? 'Integrante' : 'Jefe';
+
+            // Preparamos el array para sync: [id => ['tipo' => '...']]
+            $syncData = [];
+            foreach ($request->area_id as $areaId) {
+                $syncData[$areaId] = ['tipo' => $tipoRelacion];
+            }
+
+            // sync actualiza la tabla intermedia eliminando lo que no esté en el array
+            $user->areas()->sync($syncData);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Usuario actualizado integralmente.',
+                'data'    => $user->load(['roles:id,name', 'areas:id,nombre'])
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error al actualizar el registro: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // app/Http/Controllers/UsuarioController.php
+
+    public function show($id)
+    {
+        try {
+            // Buscamos el usuario con sus áreas y roles (si usas Spatie)
+            $usuario = User::with(['areas', 'roles'])->find($id);
+
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no encontrado'
+                ], 404);
+            }
+
+            // Formateamos la respuesta para que coincida con lo que espera tu React
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $usuario->id,
+                    'nombre' => $usuario->nombre,
+                    'segundo_nombre' => $usuario->segundo_nombre,
+                    'apellido' => $usuario->apellido,
+                    'segundo_apellido' => $usuario->segundo_apellido,
+                    'nombre_completo' => "{$usuario->nombre} {$usuario->apellido}",
+                    'email' => $usuario->email,
+                    'nombre_usuario' => $usuario->nombre_usuario,
+                    'tipo_documento' => $usuario->tipo_documento,
+                    'numero_documento' => $usuario->numero_documento,
+                    'cargo' => $usuario->cargo,
+                    'rol' => $usuario->getRoleNames()->first(), // Si usas Spatie Roles
+                    'areas' => $usuario->areas->map(function ($area) {
+                        return [
+                            'id' => $area->id,
+                            'nombre' => $area->nombre,
+                            'tipo' => $area->pivot->tipo ?? 'Integrante'
+                        ];
+                    }),
+                    'estado' => $usuario->estado
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el usuario: ' . $e->getMessage()
             ], 500);
         }
     }

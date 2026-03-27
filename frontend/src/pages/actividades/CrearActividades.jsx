@@ -21,7 +21,7 @@ export const CrearActividades = () => {
         minutos_planeados: "",
         minutos_ejecutados: "",
         fecha_finalizacion: "",
-        estado: "Programada", 
+        estado: "Programada",
         requiere_aprobacion: 0,
         notificar_asignacion: 1,
     });
@@ -184,10 +184,10 @@ export const CrearActividades = () => {
                                     <label className="form-label">Minutos Planeados:</label>
                                     <input type="number" name="minutos_planeados" className="form-input" onChange={handleChange} value={form.minutos_planeados} required />
                                 </div>
-                                <div className="form-group">
+                                {/* <div className="form-group">
                                     <label className="form-label">Minutos Ejecutados:</label>
                                     <input type="number" name="minutos_ejecutados" className="form-input" onChange={handleChange} value={form.minutos_ejecutados} />
-                                </div>
+                                </div> */}
                             </div>
 
                             <div className="form-row">
@@ -211,11 +211,14 @@ export const CrearActividades = () => {
 
                         {/* --- SECCIÓN 4: CONFIGURACIONES --- */}
                         <fieldset className="form-section no-border">
+                            <legend className="section-legend">Notificaciones</legend>
                             <div className="checkbox-group">
-                                <label className="checkbox-label">
-                                    <input type="checkbox" name="requiere_aprobacion" onChange={handleChange} />
-                                    <span>Requiere aprobación de un superior</span>
-                                </label>
+                                {tienePermiso(["JefeInmediato", "Administrador"]) && (
+                                    <label className="checkbox-label">
+                                        <input type="checkbox" name="requiere_aprobacion" onChange={handleChange} />
+                                        <span>Requiere aprobación de un superior</span>
+                                    </label>
+                                )}
                                 <label className="checkbox-label">
                                     <input type="checkbox" name="notificar_asignacion" defaultChecked onChange={handleChange} />
                                     <span>Notificar al usuario por correo</span>

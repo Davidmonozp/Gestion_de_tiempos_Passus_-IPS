@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'; // Añadimos useMemo por rendimiento
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -12,16 +12,16 @@ import 'tippy.js/dist/tippy.css';
 const CalendarioActividades = ({ actividades }) => {
     const navigate = useNavigate();
 
-    // 1. Procesamos los eventos y extraemos las áreas únicas para la leyenda
-    // Usamos useMemo para que esto solo se recalcule si "actividades" cambia
     const { eventos, leyendaAreas } = useMemo(() => {
-        const coloresVistos = new Map(); // Para la leyenda dinámica
+        const coloresVistos = new Map();
 
         const evs = actividades.map(act => {
             const nombreArea = act.area?.nombre || 'Sin área';
-            const colorFinal = act.area?.color || '#95a5a6'; // Color de la DB o gris
+            const colorFinal = act.area?.color || '#95a5a6';
+            
+            // ✅ Extraemos el nombre del usuario asignado
+            const nombreAsignado = act.asignado_a?.name || act.asignado_a?.nombre || 'No asignado';
 
-            // Guardamos el color para la leyenda si no lo tenemos
             if (!coloresVistos.has(nombreArea)) {
                 coloresVistos.set(nombreArea, colorFinal);
             }
@@ -35,7 +35,9 @@ const CalendarioActividades = ({ actividades }) => {
                 extendedProps: {
                     descripcion: act.descripcion || 'Sin descripción',
                     estado: act.estado || 'N/A',
-                    areaNombre: nombreArea
+                    areaNombre: nombreArea,
+                    // ✅ Pasamos el nombre procesado a las propiedades extendidas
+                    asignadoNombre: nombreAsignado 
                 }
             };
         });
@@ -47,15 +49,20 @@ const CalendarioActividades = ({ actividades }) => {
     }, [actividades]);
 
     const handleEventDidMount = (info) => {
-        const { descripcion, estado, areaNombre } = info.event.extendedProps;
+        // ✅ Extraemos asignadoNombre de las extendedProps
+        const { descripcion, estado, areaNombre, asignadoNombre } = info.event.extendedProps;
         
         tippy(info.el, {
             content: `
                 <div style="text-align: left; padding: 5px; color: white;">
-                    <strong>${info.event.title}</strong><br/>
-                    <small>Área: ${areaNombre}</small><br/>
-                    <small>Estado: ${estado}</small><hr style="margin: 5px 0; border: 0; border-top: 1px solid #555;"/>
-                    <p style="margin: 0; font-size: 12px;">${descripcion}</p>
+                    <strong style="font-size: 14px;">${info.event.title}</strong><br/>
+                    <div style="margin-top: 5px;">
+                        <small><strong>Área:</strong> ${areaNombre}</small><br/>
+                        <small><strong>Estado:</strong> ${estado}</small><br/>
+                        <small><strong>Asignado a:</strong> ${asignadoNombre}</small>
+                    </div>
+                    <hr style="margin: 8px 0; border: 0; border-top: 1px solid #555;"/>
+                    <p style="margin: 0; font-size: 12px; color: #ccc;">${descripcion}</p>
                 </div>
             `,
             allowHTML: true,
@@ -73,8 +80,6 @@ const CalendarioActividades = ({ actividades }) => {
 
     return (
         <div className="calendar-container">
-            
-            {/* 2. Leyenda Dinámica: Ahora usa los colores reales de tu DB */}
             <div className="calendar-legend">
                 {leyendaAreas.map(([nombre, color]) => (
                     <div key={nombre} className="legend-item">
@@ -103,7 +108,7 @@ const CalendarioActividades = ({ actividades }) => {
                         week: 'Semana',
                         day: 'Día'
                     }}
-                    events={eventos} // Usamos los eventos procesados
+                    events={eventos}
                     eventClick={handleEventClick}
                     eventDidMount={handleEventDidMount} 
                     height="700px"
