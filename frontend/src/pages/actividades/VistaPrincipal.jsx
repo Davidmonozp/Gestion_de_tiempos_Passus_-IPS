@@ -87,7 +87,9 @@ export const VistaPrincipal = () => {
     useEffect(() => {
         const fetchActividades = async () => {
             try {
-                const res = await api.get('/ver-actividades');
+                const res = await api.get('/ver-actividades', {
+                    params: { sin_paginar: 1 }
+                });
                 // Nota: Si usas paginación en Laravel, es res.data.data
                 const actividades = res.data.data || res.data;
                 setActividadesRaw(actividades);
@@ -117,33 +119,44 @@ export const VistaPrincipal = () => {
                 let contadorRetrasoFecha = 0;
                 let contadorExcedioMinutos = 0;
 
+
+
                 finalizadas.forEach(act => {
-                    // --- A. LÓGICA DE FECHAS (Calendario) ---
-                    const fechaLimiteStr = act.fecha_finalizacion?.split(' ')[0];
-                    let fechaCierreReal = act.updated_at?.split(' ')[0];
+                    // 1. Normalizamos Límite: de "2026-03-25 11:00:00" a "2026-03-25"
+                    const fechaLimiteStr = act.fecha_finalizacion ? act.fecha_finalizacion.split(' ')[0] : null;
 
+                    let fechaCierreStr = null;
+
+                    // 2. Buscamos la evidencia más reciente
                     if (act.evidencias && act.evidencias.length > 0) {
-                        const ultimaEvidencia = act.evidencias.reduce((prev, current) =>
-                            (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current
-                        );
-                        fechaCierreReal = ultimaEvidencia.updated_at?.split(' ')[0];
-                    }
+                        const ultimaEv = act.evidencias.reduce((prev, curr) => {
+                            return new Date(prev.updated_at) > new Date(curr.updated_at) ? prev : curr;
+                        });
+                        // 🚩 CORRECCIÓN AQUÍ: Usamos split('T') porque el log mostró formato ISO con T
+                        fechaCierreStr = ultimaEv.updated_at ? ultimaEv.updated_at.split('T')[0] : null;
+                    } else {
+                        // Por si acaso, también aquí
+                        fechaCierreStr = act.updated_at ? act.updated_at.split('T')[0] : null;
+                    }                  
 
-                    if (fechaCierreReal <= fechaLimiteStr) {
-                        contadorATiempo++;
+                    // 3. COMPARACIÓN
+                    if (fechaLimiteStr && fechaCierreStr) {
+                        // Ahora sí: "2026-03-25" <= "2026-03-25" es TRUE ✅
+                        if (fechaCierreStr <= fechaLimiteStr) {
+                            contadorATiempo++;
+                        } else {
+                            contadorRetrasoFecha++;
+                        }
                     } else {
                         contadorRetrasoFecha++;
                     }
+                    console.groupEnd();
 
-                    // --- B. LÓGICA DE MINUTOS (Presupuesto) ---
-                    // Sumamos minutos_ejecutados + minutos_extra de todas sus evidencias
-                    const totalMinutosReales = act.evidencias?.reduce((acc, ev) => {
-                        return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
-                    }, 0) || 0;
+                    // --- Lógica de minutos (igual que antes) ---
+                    const totalMinutos = act.evidencias?.reduce((acc, ev) =>
+                        acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0), 0) || 0;
 
-                    const planeados = Number(act.minutos_planeados) || 0;
-
-                    if (totalMinutosReales > planeados) {
+                    if (totalMinutos > (Number(act.minutos_planeados) || 0)) {
                         contadorExcedioMinutos++;
                     }
                 });
@@ -173,18 +186,20 @@ export const VistaPrincipal = () => {
         const cargarColores = async () => {
             try {
                 const response = await api.get('/ver-areas');
-                // Extraemos el array 'data' si viene paginado, si no, usamos el response.data directamente
                 const areasArray = Array.isArray(response.data) ? response.data : response.data.data;
 
                 const mapa = {};
                 areasArray.forEach(area => {
                     mapa[area.id] = area.color;
                 });
-                setMapaAreas(mapa);
+                // 💡 Cambiado para que coincida con el nombre de tu estado
+                setColoresAreas(mapa);
             } catch (error) {
                 console.error("Error cargando colores de áreas", error);
             }
         };
+
+        cargarColores();
     }, []);
 
     // --- MEMORIZACIÓN DE DATOS (Evita parpadeos por cronómetro) ---

@@ -93,6 +93,7 @@ class ActividadController extends Controller
 
             // Capturamos el filtro que viene de React
             $verTodoElArea = $request->query('todo_el_area', 0);
+            $sinPaginar = $request->query('sin_paginar', 0);
 
             // 👑 Administrador: Ve todo
             if ($user->hasRole('Administrador')) {
@@ -126,6 +127,13 @@ class ActividadController extends Controller
                 $query->where('asignado_a', $user->id);
             }
 
+            if ($sinPaginar == 1) {
+                $actividades = $query->latest()->get(); // Trae los 30+ registros
+                return response()->json([
+                    'data' => $actividades,
+                    'total' => $actividades->count()
+                ]);
+            }
             $actividades = $query->latest()->paginate(10);
 
             return response()->json($actividades);
@@ -137,6 +145,8 @@ class ActividadController extends Controller
             ], 500);
         }
     }
+
+    
     public function show($id)
     {
         try {
@@ -346,96 +356,95 @@ class ActividadController extends Controller
     }
 
 
-public function update(Request $request, $id)
-{
-    try {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        $actividad = Actividad::findOrFail($id);
+    public function update(Request $request, $id)
+    {
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            $actividad = Actividad::findOrFail($id);
 
-        // 1. 🛑 RESTRICCIÓN DE ESTADO
-        $estadosRestringidos = ['Finalizada', 'Espera_aprobacion'];
-        if (in_array($actividad->estado, $estadosRestringidos)) {
-            return response()->json([
-                'success' => false,
-                'message' => "No se puede editar una actividad con estado: {$actividad->estado}."
-            ], 403);
-        }
-
-        // 2. VALIDACIÓN (Aseguramos que area_id sea opcional pero válido)
-        $request->validate([
-            'area_id' => 'nullable|exists:areas,id',
-            'asignado_a' => 'sometimes|required|exists:users,id',
-            'nombre' => 'sometimes|required|string|max:255',
-        ]);
-
-        // 3. 🔒 SEGURIDAD POR ROL (JefeInmediato = Usuario)
-        if (!$user->hasRole('Administrador')) {
-            if (($user->hasRole('JefeInmediato') || $user->hasRole('Usuario')) && $actividad->asignado_a != $user->id) {
-                return response()->json(['success' => false, 'message' => 'No tiene permisos para editar esta actividad.'], 403);
+            // 1. 🛑 RESTRICCIÓN DE ESTADO
+            $estadosRestringidos = ['Finalizada', 'Espera_aprobacion'];
+            if (in_array($actividad->estado, $estadosRestringidos)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "No se puede editar una actividad con estado: {$actividad->estado}."
+                ], 403);
             }
-        }
 
-        // 4. GESTIÓN DE ARCHIVOS (Mantenemos tu lógica original)
-        $archivosFinales = [];
-        $inputArchivos = $request->input('archivos');
-        if ($inputArchivos) {
-            $existentes = is_string($inputArchivos) ? json_decode($inputArchivos, true) : $inputArchivos;
-            if (is_array($existentes)) {
-                foreach ($existentes as $arc) {
-                    if (isset($arc['path'])) {
-                        $archivosFinales[] = $arc;
+            // 2. VALIDACIÓN (Aseguramos que area_id sea opcional pero válido)
+            $request->validate([
+                'area_id' => 'nullable|exists:areas,id',
+                'asignado_a' => 'sometimes|required|exists:users,id',
+                'nombre' => 'sometimes|required|string|max:255',
+            ]);
+
+            // 3. 🔒 SEGURIDAD POR ROL (JefeInmediato = Usuario)
+            if (!$user->hasRole('Administrador')) {
+                if (($user->hasRole('JefeInmediato') || $user->hasRole('Usuario')) && $actividad->asignado_a != $user->id) {
+                    return response()->json(['success' => false, 'message' => 'No tiene permisos para editar esta actividad.'], 403);
+                }
+            }
+
+            // 4. GESTIÓN DE ARCHIVOS (Mantenemos tu lógica original)
+            $archivosFinales = [];
+            $inputArchivos = $request->input('archivos');
+            if ($inputArchivos) {
+                $existentes = is_string($inputArchivos) ? json_decode($inputArchivos, true) : $inputArchivos;
+                if (is_array($existentes)) {
+                    foreach ($existentes as $arc) {
+                        if (isset($arc['path'])) {
+                            $archivosFinales[] = $arc;
+                        }
                     }
                 }
             }
-        }
 
-        if ($request->hasFile('archivos')) {
-            foreach ($request->file('archivos') as $archivo) {
-                $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
-                $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
-                $archivosFinales[] = [
-                    'path' => 'uploads/actividades/' . $nombreArchivo,
-                    'original_name' => $archivo->getClientOriginalName(),
-                ];
+            if ($request->hasFile('archivos')) {
+                foreach ($request->file('archivos') as $archivo) {
+                    $nombreArchivo = time() . '_' . str_replace(' ', '_', $archivo->getClientOriginalName());
+                    $archivo->move(public_path('uploads/actividades'), $nombreArchivo);
+                    $archivosFinales[] = [
+                        'path' => 'uploads/actividades/' . $nombreArchivo,
+                        'original_name' => $archivo->getClientOriginalName(),
+                    ];
+                }
             }
+
+            // 5. 🛠️ SOLUCIÓN AL PROBLEMA DEL ÁREA
+            // Extraemos todos los datos excepto archivos
+            $data = $request->except(['archivos']);
+
+            // Sincronizamos los campos básicos
+            $actividad->fill($data);
+
+            // FORZADO MANUAL: Si area_id viene en el request, lo asignamos directamente
+            // Esto soluciona problemas si el FormData lo envía como string o dentro de otro campo
+            if ($request->has('area_id')) {
+                $actividad->area_id = $request->input('area_id');
+            }
+            // A veces React envía el objeto 'area' completo, intentamos extraer el ID de ahí también
+            elseif ($request->has('area') && is_array($request->input('area'))) {
+                $actividad->area_id = $request->input('area')['id'];
+            }
+
+            $actividad->archivos = $archivosFinales;
+
+            // 6. GUARDADO
+            $actividad->save();
+
+            // 7. RESPUESTA
+            $actividad->load(['area', 'asignadoA', 'asignadoPor']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Actividad actualizada con éxito',
+                'data' => $actividad
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
-
-        // 5. 🛠️ SOLUCIÓN AL PROBLEMA DEL ÁREA
-        // Extraemos todos los datos excepto archivos
-        $data = $request->except(['archivos']);
-        
-        // Sincronizamos los campos básicos
-        $actividad->fill($data);
-
-        // FORZADO MANUAL: Si area_id viene en el request, lo asignamos directamente
-        // Esto soluciona problemas si el FormData lo envía como string o dentro de otro campo
-        if ($request->has('area_id')) {
-            $actividad->area_id = $request->input('area_id');
-        } 
-        // A veces React envía el objeto 'area' completo, intentamos extraer el ID de ahí también
-        elseif ($request->has('area') && is_array($request->input('area'))) {
-            $actividad->area_id = $request->input('area')['id'];
-        }
-
-        $actividad->archivos = $archivosFinales;
-
-        // 6. GUARDADO
-        $actividad->save();
-
-        // 7. RESPUESTA
-        $actividad->load(['area', 'asignadoA', 'asignadoPor']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Actividad actualizada con éxito',
-            'data' => $actividad
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
     }
-}
 
 
     // public function update(Request $request, $id)

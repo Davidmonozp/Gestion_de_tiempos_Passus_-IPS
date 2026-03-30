@@ -29,32 +29,55 @@ export const Actividades = () => {
     useEffect(() => {
         const fetchActividades = async () => {
             try {
-                if (actividades.length === 0) {
-                    setLoading(true);
+                // Solo mostramos el loader principal si no hay datos previos 
+                // para evitar parpadeos molestos al cambiar de vista
+                if (actividades.length === 0) setLoading(true);
+
+                // 1. Preparamos los parámetros base
+                const params = {
+                    todo_el_area: verTodoElArea ? 1 : 0,
+                };
+
+                // 2. Lógica condicional según la vista
+                if (vista === "calendario") {
+                    // Enviamos un flag para que Laravel devuelva TODO (get())
+                    params.sin_paginar = 1;
+                } else {
+                    // Enviamos la página actual para que Laravel devuelva solo 10-15 (paginate())
+                    params.page = currentPage;
                 }
 
-                // 🟢 Parámetro 'todo_el_area' para el controlador de Laravel
-                const response = await api.get(`/ver-actividades`, {
-                    params: {
-                        page: currentPage,
-                        todo_el_area: verTodoElArea ? 1 : 0,
-                    },
-                });
+                const response = await api.get(`/ver-actividades`, { params });
 
-                const datosOrdenados = response.data.data.sort((a, b) => b.id - a.id);
+                // 3. Manejo de la respuesta (Laravel devuelve los datos en .data si es paginado)
+                const rawData = response.data.data || response.data;
+
+                // Validamos que sea un array antes de ordenar
+                const listaActividades = Array.isArray(rawData) ? rawData : [];
+
+                const datosOrdenados = listaActividades.sort((a, b) => b.id - a.id);
+
                 setActividades(datosOrdenados);
-                setLastPage(response.data.last_page);
+
+                // 4. Actualizamos el total de páginas solo si la respuesta es paginada
+                if (response.data.last_page) {
+                    setLastPage(response.data.last_page);
+                }
+
             } catch (error) {
                 console.error(
                     "Error al obtener actividades:",
-                    error.response?.data || error.message,
+                    error.response?.data || error.message
                 );
             } finally {
                 setLoading(false);
             }
         };
+
         fetchActividades();
-    }, [currentPage, verTodoElArea]);
+
+
+    }, [currentPage, verTodoElArea, vista]);
 
     if (loading) return <p className="loading-text">Cargando actividades...</p>;
 
