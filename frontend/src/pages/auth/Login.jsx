@@ -22,32 +22,37 @@ const Login = () => {
     });
   };
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      await login(form.nombre_usuario, form.password, form.rememberMe);
-      
-      // Opcional: Alerta de éxito antes de navegar
-      Swal.fire({
-        icon: 'success',
-        title: '¡Bienvenido!',
-        text: 'Inicio de sesión exitoso',
-        timer: 1500,
-        showConfirmButton: false
-      });
+        // Al llamar a login, si Laravel responde 401 o 403, 
+        // el 'throw error' del Context disparará el catch de aquí abajo.
+        await login(form.nombre_usuario, form.password, form.rememberMe);
+        
+        Swal.fire({
+            icon: 'success',
+            title: '¡Bienvenido!',
+            text: 'Inicio de sesión exitoso',
+            timer: 1500,
+            showConfirmButton: false
+        });
 
-      navigate("/vista-principal");
+        navigate("/vista-principal");
+
     } catch (error) {
-      // 2. Reemplazo del alert por SweetAlert2
-      Swal.fire({
-        icon: 'error',
-        title: 'Error de acceso',
-        text: 'Credenciales incorrectas, por favor intenta de nuevo.',
-        confirmButtonColor: '#00933f', 
-      });
+        // Extraemos el mensaje real de tu controlador de Laravel:
+        // "Credenciales inválidas" O "Tu cuenta se encuentra inactiva..."
+        const mensajeServidor = error.response?.data?.message || 'Credenciales incorrectas, por favor intenta de nuevo.';
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de acceso',
+            text: mensajeServidor, // <--- Aquí mostramos el mensaje dinámico
+            confirmButtonColor: '#00933f', 
+        });
     }
-  };
+};
 
   return (
     <>

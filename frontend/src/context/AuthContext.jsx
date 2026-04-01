@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
             // PASO CLAVE: El backend compara (Tiempo de Reloj) vs (Suma de minutos de actividades hoy)
             const resPreview = await api.get('/jornada/previsualizar-salida');
             const { tiempo_laboral, tiempo_actividades, diferencia_minutos } = resPreview.data.calculo;
-            
+
             // Si la diferencia entre lo trabajado y lo registrado es > 10 min, alertamos
             const esIncompleto = diferencia_minutos > 0;
 
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
                     setJornadaActiva(false);
                     setSegundos(0);
                     await Swal.fire({ icon: 'success', title: 'Jornada Cerrada', timer: 1500, showConfirmButton: false });
-                    logout(); 
+                    logout();
                 }
             }
         } catch (error) {
@@ -121,11 +121,24 @@ export const AuthProvider = ({ children }) => {
     };
 
     const login = async (nombre_usuario, password) => {
-        const response = await api.post("/auth/login", { nombre_usuario, password });
-        const { access_token, user: userData } = response.data;
-        localStorage.setItem("token", access_token);
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
+        try {
+            const response = await api.post("/auth/login", { nombre_usuario, password });
+
+            // Si llegamos aquí, la respuesta fue 200 (Éxito)
+            const { access_token, user: userData } = response.data;
+
+            localStorage.setItem("token", access_token);
+            localStorage.setItem("user", JSON.stringify(userData));
+
+            setUser(userData);
+
+            return response.data; // Retornamos los datos por si el componente los necesita
+
+        } catch (error) {
+            // MUY IMPORTANTE: Lanzamos el error hacia afuera
+            // Esto hace que el 'catch' de tu handleSubmit en Login.jsx se active
+            throw error;
+        }
     };
 
     const logout = () => {
@@ -144,10 +157,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ 
+        <AuthContext.Provider value={{
             user, login, logout, tienePermiso,
             tiempoTranscurrido: formatearTiempo(segundos),
-            jornadaActiva, handleEntrada, handleSalida 
+            jornadaActiva, handleEntrada, handleSalida
         }}>
             {children}
         </AuthContext.Provider>
@@ -320,10 +333,10 @@ export const useAuth = () => useContext(AuthContext);
 //     };
 
 //     return (
-//         <AuthContext.Provider value={{ 
+//         <AuthContext.Provider value={{
 //             user, login, logout, tienePermiso,
 //             tiempoTranscurrido: formatearTiempo(segundos),
-//             jornadaActiva, handleEntrada, handleSalida 
+//             jornadaActiva, handleEntrada, handleSalida
 //         }}>
 //             {children}
 //         </AuthContext.Provider>

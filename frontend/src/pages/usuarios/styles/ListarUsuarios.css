@@ -47,7 +47,8 @@ h3 {
 /* Estilo base para todos los botones de icono */
 .btn-icon-view,
 .btn-icon-edit,
-.btn-icon-delete {
+.btn-icon-delete,
+.btn-icon-status {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -389,6 +390,31 @@ h3 {
     background-color: #ddd !important;
     color: #333 !important;
 }
+
+
+
+
+.btn-icon-status{
+    background: none;
+    border: none;
+}
+
+/* ICONO ACTIVO: Verde y sin tacha */
+.active-icon {
+    color: #2ecc71; /* Verde */
+}
+
+.inactive-icon {
+    color: #e74c3c; /* Rojo */
+    text-decoration: line-through; /* Tachado opcional */
+}
+
+/* Opcional: un efecto visual cuando se está actualizando */
+.action-btn.status:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 @media (min-width: 200px) and (max-width: 500px) {
     .container-usuarios {

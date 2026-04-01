@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
     LayoutGrid, List, Search, UserPlus, Mail,
-    ShieldCheck, Edit2, Eye, Trash2, Briefcase
+    ShieldCheck, Edit2, Eye, Trash2, Briefcase,
+    UserCheck,
+    UserX
 } from 'lucide-react';
 import './styles/ListarUsuarios.css';
 import api from '../../services/api';
@@ -10,12 +12,14 @@ import { Sidebar } from '../../components/Sidebar';
 import { Version } from '../../components/Version';
 import { useNavigate } from 'react-router-dom';
 import { tienePermiso } from '../../utils/Permisos';
+import { useUserStatus } from './hooks/useUserStatus';
 
 export const ListarUsuarios = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [viewMode, setViewMode] = useState('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const { toggleStatus, isUpdating } = useUserStatus(setUsuarios, usuarios);
 
 
     const COLORES_POR_AREA = {
@@ -37,8 +41,12 @@ export const ListarUsuarios = () => {
     };
 
     const fetchUsuarios = async () => {
-        const res = await api.get('/ver-usuarios');
-        setUsuarios(res.data.data);
+        try {
+            const res = await api.get('/ver-usuarios');
+            setUsuarios(res.data.data);
+        } catch (error) {
+            console.error("Error al cargar usuarios:", error);
+        }
     };
 
     useEffect(() => { fetchUsuarios(); }, []);
@@ -139,6 +147,17 @@ export const ListarUsuarios = () => {
                                                     <i className="fa-regular fa-pen-to-square"></i>
                                                 </button>
                                                 <button className="btn-icon-delete"><i className="fa-regular fa-trash-can"></i></button>
+                                                <button
+                                                    className="btn-icon-status"
+                                                    disabled={isUpdating}
+                                                    onClick={() => toggleStatus(u)}
+                                                    title={u.estado === 'Activo' ? "Inactivar" : "Activar"}
+                                                >
+                                                    <i className={`fa-solid ${u.estado === 'Activo'
+                                                        ? 'fa-handshake active-icon'
+                                                        : 'fa-handshake-slash inactive-icon'
+                                                        }`}></i>
+                                                </button>
                                             </div>
                                         </div>
                                     );
@@ -222,6 +241,18 @@ export const ListarUsuarios = () => {
                                                             <Edit2 size={16} />
                                                         </button>
                                                         <button className="action-btn delete"><Trash2 size={16} /></button>
+
+                                                        <button
+                                                            className="action-btn status"
+                                                            disabled={isUpdating}
+                                                            onClick={() => toggleStatus(u)}
+                                                            title={u.estado === 'Activo' ? "Inactivar" : "Activar"}
+                                                        >
+                                                            {u.estado === 'Activo'
+                                                                ? <UserCheck size={16} className="active-icon" />
+                                                                : <UserX size={16} className="inactive-icon" />
+                                                            }
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             );

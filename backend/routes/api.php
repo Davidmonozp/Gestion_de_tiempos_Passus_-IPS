@@ -36,6 +36,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/ver-usuarios', [UsuarioController::class, 'index']);
     Route::put('/editar-usuario/{id}', [UsuarioController::class, 'update']);
     Route::get('/ver-usuario/{id}', [UsuarioController::class, 'show']);
+    Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'toggleStatus']);
 
 
     // Rutas de Actividades y Evidencias

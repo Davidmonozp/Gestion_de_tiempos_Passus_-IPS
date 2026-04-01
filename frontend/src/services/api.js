@@ -21,14 +21,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Opción A: Limpieza rápida si no necesitas lógica de React aquí
+    // Si es 401 Y la ruta NO es la de login
+    if (error.response && error.response.status === 401 && !error.config.url.includes('/auth/login')) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // Forzar recarga para limpiar estados de memoria y redirigir
+      // Solo redirigir si el token expiró mientras navegábamos, 
+      // NO mientras estamos intentando loguearnos.
       window.location.href = "/login";
     }
+
+    // IMPORTANTE: Siempre retornar el rechazo para que el catch del componente funcione
     return Promise.reject(error);
   }
 );

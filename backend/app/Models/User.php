@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Notifications\Notifiable; 
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable implements JWTSubject
@@ -23,9 +23,22 @@ class User extends Authenticatable implements JWTSubject
         'nombre_usuario',
         'email',
         'password',
-        'cargo'
+        'cargo',
+        'activo'
     ];
     protected $hidden = ['password', 'remember_token'];
+
+    protected $casts = [
+        'activo' => 'integer',
+        'password' => 'hashed',
+    ];
+
+    protected $appends = ['estado'];
+    
+    public function getEstadoAttribute()
+    {
+        return $this->activo === 1 ? 'Activo' : 'Inactivo';
+    }
 
     public function getJWTIdentifier()
     {

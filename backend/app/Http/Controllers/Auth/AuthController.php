@@ -72,6 +72,16 @@ class AuthController extends Controller
             // 2. Obtener al usuario autenticado para sacar sus roles
             $user = Auth::guard('api')->user();
 
+            if ($user->activo !== 1) {
+                // Invalidamos el token que se acaba de crear para que no pueda usarse
+                Auth::guard('api')->logout();
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tu cuenta se encuentra inactiva. Por favor, contacta al administrador.'
+                ], 403); 
+            }
+
             // 3. Respuesta de éxito (Fuera de los catch)
             return response()->json([
                 'status' => 'success',
@@ -85,6 +95,7 @@ class AuthController extends Controller
                     'nombre_usuario' => $user->nombre_usuario,
                     'email' => $user->email,
                     'roles' => $user->getRoleNames(),
+                    'activo' => $user->activo
                 ]
             ]);
         } catch (JWTException $e) {

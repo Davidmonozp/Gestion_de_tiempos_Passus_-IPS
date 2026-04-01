@@ -58,7 +58,7 @@ export const VistaPrincipal = () => {
 
     // Busca esta función en tu código
     const CustomizedContent = (props) => {
-        const { root, depth, x, y, width, height, index, name, fill } = props; // <--- Agrega 'fill' aquí
+        const { x, y, width, height, name, fill } = props;
 
         return (
             <g>
@@ -68,15 +68,31 @@ export const VistaPrincipal = () => {
                     width={width}
                     height={height}
                     style={{
-                        // ANTES: fill: COLORS_AREAS[index % COLORS_AREAS.length]
-                        // AHORA: Usa el fill que viene de la data
-                        fill: fill || '#7f8c8d',
+                        fill: fill || '#127fa0ff',
                         stroke: '#fff',
                         strokeWidth: 2,
+                        transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.fillOpacity = 0.8;
+                        e.target.style.cursor = 'pointer';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.fillOpacity = 1;
                     }}
                 />
-                {depth === 1 && (
-                    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" fill="#fff" fontSize={12}>
+                {/* Solo muestra el texto si el recuadro es lo suficientemente grande */}
+                {width > 120 && height > 40 && (
+                    <text
+                        x={x + width / 2}
+                        y={y + height / 2}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="#fff"
+                        fontSize="12"
+                        fontWeight="bold"
+                        pointerEvents="none"
+                    >
                         {name}
                     </text>
                 )}
@@ -137,7 +153,7 @@ export const VistaPrincipal = () => {
                     } else {
                         // Por si acaso, también aquí
                         fechaCierreStr = act.updated_at ? act.updated_at.split('T')[0] : null;
-                    }                  
+                    }
 
                     // 3. COMPARACIÓN
                     if (fechaLimiteStr && fechaCierreStr) {
@@ -253,35 +269,41 @@ export const VistaPrincipal = () => {
     // }, [actividadesRaw]);
 
     const memoComparativa = useMemo(() => {
-        return actividadesRaw.slice(-10).map(act => {
-            const planeados = Number(act.minutos_planeados) || 0;
+        // 1. Clonamos el array para no afectar el estado original
+        return [...actividadesRaw]
+            // 2. Ordenamos explícitamente por fecha (Más reciente PRIMERO)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            // 3. Cortamos los primeros 10 (Los 10 más nuevos que existen)
+            .slice(0, 10)
+            // 4. Invertimos el resultado para que en la gráfica el tiempo 
+            // fluya de izquierda (pasado) a derecha (presente/más reciente)
+            .reverse()
+            .map(act => {
+                const planeados = Number(act.minutos_planeados) || 0;
 
-            // SUMAMOS las evidencias asociadas a esta actividad
-            // Asumiendo que 'act.evidencias' es un array que viene de tu API
-            const totalEjecutadoEvidencias = act.evidencias?.reduce((acc, ev) => {
-                return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
-            }, 0) || 0;
+                // Cálculo de ejecución sumando minutos ejecutados y extra
+                const totalEjecutadoEvidencias = act.evidencias?.reduce((acc, ev) => {
+                    return acc + (Number(ev.minutos_ejecutados) || 0) + (Number(ev.minutos_extra) || 0);
+                }, 0) || 0;
 
-            // Determinamos el extra (lo que superó la planeación)
-            const extra = totalEjecutadoEvidencias > planeados
-                ? totalEjecutadoEvidencias - planeados
-                : 0;
+                const extra = totalEjecutadoEvidencias > planeados
+                    ? totalEjecutadoEvidencias - planeados
+                    : 0;
 
-            // El cumplimiento es el tiempo trabajado que NO es extra (tope de planeación)
-            const cumplidos = totalEjecutadoEvidencias > planeados
-                ? planeados
-                : totalEjecutadoEvidencias;
+                const cumplidos = totalEjecutadoEvidencias > planeados
+                    ? planeados
+                    : totalEjecutadoEvidencias;
 
-            return {
-                name: act.nombre.length > 25 ? act.nombre.substring(0, 25) + '...' : act.nombre,
-                planeados,
-                cumplidos,
-                extra,
-                porcentajeCumplimiento: planeados > 0
-                    ? ((totalEjecutadoEvidencias / planeados) * 100).toFixed(1)
-                    : 0
-            };
-        });
+                return {
+                    name: act.nombre.length > 25 ? act.nombre.substring(0, 25) + '...' : act.nombre,
+                    planeados,
+                    cumplidos,
+                    extra,
+                    porcentajeCumplimiento: planeados > 0
+                        ? ((totalEjecutadoEvidencias / planeados) * 100).toFixed(1)
+                        : 0
+                };
+            });
     }, [actividadesRaw]);
 
 
@@ -313,6 +335,8 @@ export const VistaPrincipal = () => {
     }, [actividadesRaw]);
 
     if (loading) return <div className="loading-container"><p>Cargando dashboard...</p></div>;
+
+
 
 
     return (
@@ -505,17 +529,19 @@ export const VistaPrincipal = () => {
                 </div>
 
                 <div className="grafica-ajena treemap-container">
-                    <h3>Distribución de Tareas Ajenas </h3>
+                    <h3>Distribución de Tareas Ajenas</h3>
                     <ResponsiveContainer width="100%" height={400}>
                         <Treemap
                             data={dataTreemap}
                             dataKey="size"
                             aspectRatio={4 / 3}
-                            content={<CustomizedContent />} // Tu componente ahora maneja el color
+                            // 2. Aquí vinculas la función que definiste arriba
+                            content={<CustomizedContent />}
                         >
                             <Tooltip
                                 contentStyle={{ borderRadius: '8px', border: 'none' }}
-                                formatter={(value) => [`${value} Actividades`, 'Cantidad']}
+                                // 3. Asegúrate de que el Tooltip muestre el nombre del área
+                                formatter={(value, name, props) => [`${value} Actividades`, `Área: ${props.payload.name}`]}
                             />
                         </Treemap>
                     </ResponsiveContainer>

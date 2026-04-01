@@ -62,10 +62,7 @@ class UsuarioController extends Controller
                 'cargo'            => $request->cargo,
             ]);
 
-            // 3. Asignar el Rol especificando el guard 'api'
-            // Esto evita el error "There is no role named... for guard api"
-            // 3. Asignar el Rol de Spatie de forma segura
-            // Primero buscamos el objeto del rol para asegurarnos de que existe con el guard correcto
+
             $rolEncontrado = \Spatie\Permission\Models\Role::where('name', $request->rol_nombre)
                 ->where('guard_name', 'api')
                 ->first();
@@ -203,7 +200,6 @@ class UsuarioController extends Controller
         }
     }
 
-    // app/Http/Controllers/UsuarioController.php
 
     public function show($id)
     {
@@ -342,4 +338,29 @@ class UsuarioController extends Controller
     //         }
     //     }
     // }
+
+    public function toggleStatus($id)
+    {
+        /** @var \App\Models\User $admin */
+        $admin = Auth::user();
+
+        // Verificación de permisos
+        if (!$admin->hasRole('Administrador')) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $user = User::findOrFail($id);
+
+        // Cambiamos el estado (si es 1 pasa a 0, si es 0 pasa a 1)
+        $user->activo = $user->activo == 1 ? 0 : 1;
+        $user->save();
+
+        $statusText = $user->activo == 1 ? 'activado' : 'inactivado';
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Usuario {$statusText} correctamente.",
+            'activo'  => $user->activo
+        ]);
+    }
 }
