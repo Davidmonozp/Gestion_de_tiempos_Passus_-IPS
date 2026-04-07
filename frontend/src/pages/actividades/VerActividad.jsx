@@ -392,6 +392,21 @@ export const VerActividad = () => {
                                     } onChange={handleChange} style={{ width: "100%" }} />
                                 ) : <p>{form.fecha_finalizacion} </p>}
                             </div>
+                            <div>
+                                <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Fecha de registro:</label>
+                                <p>
+                                    {form.created_at ?
+                                        new Date(form.created_at).toLocaleString('sv-SE', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false
+                                        }).replace(',', '')
+                                        : 'Sin fecha'}
+                                </p>
+                            </div>
                         </div>
 
                         <div className="checkbox-group">
