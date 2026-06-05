@@ -1,10 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "http://127.0.0.1:8000/api",
   // baseURL: "http://192.168.1.34:8000/api",
   // baseURL: "https://test-api-cronos.passus.cloud/api",  
-  baseURL: "https://api-cronos.passus.cloud/api",  
+  // baseURL: "https://api-cronos.passus.cloud/api",  
 
 });
 
@@ -14,10 +14,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  return config;
+  return config;                                                                                                                                                                            
 });
 
-// INTERCEPTOR DE RESPUESTA: Aquí ocurre la magia
+// INTERCEPTOR DE RESPUESTA
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,7 +31,6 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
-    // IMPORTANTE: Siempre retornar el rechazo para que el catch del componente funcione
     return Promise.reject(error);
   }
 );

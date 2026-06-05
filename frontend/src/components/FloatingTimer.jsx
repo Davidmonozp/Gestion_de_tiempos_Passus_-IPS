@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import './styles/FloatingTimer.css';
 
 export const FloatingTimer = ({ tiempoTranscurrido, jornadaActiva }) => {
@@ -18,3 +17,4 @@ export const FloatingTimer = ({ tiempoTranscurrido, jornadaActiva }) => {
         </div>
     );
 };
+

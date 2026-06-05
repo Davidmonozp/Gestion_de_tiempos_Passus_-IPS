@@ -68,7 +68,7 @@ export const EditarUsuario = () => {
                     // Importante: Convertir IDs a String para que el checkbox haga match
                     area_id: u.areas ? u.areas.map(a => a.id.toString()) : []
                 });
-            } catch (error) {
+            } catch  {
                 Swal.fire('Error', 'No se pudo cargar la información', 'error');
                 navigate('/usuarios');
             } finally {
@@ -83,7 +83,7 @@ export const EditarUsuario = () => {
             await api.put(`/editar-usuario/${id}`, values);
             Swal.fire('¡Éxito!', 'Usuario actualizado correctamente', 'success');
             navigate('/usuarios');
-        } catch (error) {
+        } catch {
             Swal.fire('Error', 'No se pudo actualizar el usuario', 'error');
         } finally {
             setSubmitting(false);

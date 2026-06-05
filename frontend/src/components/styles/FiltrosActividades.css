@@ -1,0 +1,97 @@
+.filtros-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* grid-template-columns: 1fr 2fr 2fr 1fr 1fr 1fr 1fr 1fr; */
+    gap: 6px;
+    /* background: #eeeeee; */
+    width: 98%;
+    border-radius: 16px;
+    align-items: end;
+    margin: 0 auto 10px auto;
+    padding: 10px;
+}
+
+
+.filtros-container select {
+    border: none;
+}
+
+.input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    max-width: 300px;
+    height: 56px;
+}
+
+.input-container label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.input-container input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: #a0aec0;
+}
+
+
+.button-actions-container {
+    grid-column: span 3;
+    gap: 10px;
+    margin-top: 0;
+    width: 100%;
+    padding: 10px 15px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+}
+
+.btn-limpiar {
+    padding: 10px 10px;
+    background-image: linear-gradient(-20deg, #0087cd 0%, #024363 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+    justify-self: start;
+    padding: 10px 15px;
+    height: 35px;
+    /* Ajusta este valor al mismo que tengan tus inputs aproximadamente */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-aplicar {
+    padding: 10px 10px;
+    background-image: linear-gradient(-20deg, #0087cd 0%, #024363 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+    justify-self: start;
+    padding: 10px 15px;
+    height: 35px;
+    /* Ajusta este valor al mismo que tengan tus inputs aproximadamente */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-aplicar:hover,
+.btn-limpiar:hover {
+    background-image: linear-gradient(-20deg, #024363 0%, #0087cd 100%);
+    transform: translateY(-2px);
+    opacity: 0.95;
+}

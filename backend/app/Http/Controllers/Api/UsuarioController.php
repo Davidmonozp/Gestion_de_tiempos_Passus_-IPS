@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class UsuarioController extends Controller
 {
@@ -362,5 +363,74 @@ class UsuarioController extends Controller
             'message' => "Usuario {$statusText} correctamente.",
             'activo'  => $user->activo
         ]);
+    }
+
+    public function changeMyPassword(Request $request)
+    {
+        try {
+
+            // Usuario autenticado
+            $authenticatedUser = Auth::user();
+
+            if (!$authenticatedUser) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Usuario no autenticado.'
+                ], 401);
+            }
+
+            // Obtener usuario completo
+            $user = User::find($authenticatedUser->id);
+
+            // Validación
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'current_password' => 'required',
+                    'password' => 'required|string|min:6|confirmed',
+                ],
+                [
+                    'current_password.required' => 'Debe ingresar la contraseña actual.',
+                    'password.required' => 'Debe ingresar una nueva contraseña.',
+                    'password.min' => 'La nueva contraseña debe tener al menos 6 caracteres.',
+                    'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+                ]
+            );
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Verificar contraseña actual
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'La contraseña actual es incorrecta.'
+                ], 422);
+            }
+
+            // Actualizar contraseña
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Tu contraseña ha sido actualizada correctamente.'
+            ], 200);
+        } catch (\Exception $e) {
+
+            Log::error('Error al cambiar contraseña', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrió un error interno al actualizar la contraseña.'
+            ], 500);
+        }
     }
 }

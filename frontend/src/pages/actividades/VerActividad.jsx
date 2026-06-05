@@ -23,7 +23,7 @@ export const VerActividad = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [nuevosArchivos, setNuevosArchivos] = useState([]);
     const [form, setForm] = useState(null);
-    const [nuevosArchivosSolucion, setNuevosArchivosSolucion] = useState([]);
+    // const [nuevosArchivosSolucion, setNuevosArchivosSolucion] = useState([]);
     const userJson = localStorage.getItem("user");
     const currentUser = userJson ? JSON.parse(userJson) : null;
 
@@ -100,11 +100,11 @@ export const VerActividad = () => {
     };
 
 
-    const handleSolucionFilesChange = (e) => {
-        const selected = Array.from(e.target.files);
-        setNuevosArchivosSolucion((prev) => [...prev, ...selected]);
-        e.target.value = null;
-    };
+    // const handleSolucionFilesChange = (e) => {
+    //     const selected = Array.from(e.target.files);
+    //     setNuevosArchivosSolucion((prev) => [...prev, ...selected]);
+    //     e.target.value = null;
+    // };
 
     const handleUpdate = async (e) => {
         if (e) e.preventDefault();
@@ -306,21 +306,30 @@ export const VerActividad = () => {
                             {/* --- COLUMNA IZQUIERDA: DETALLES --- */}
                             <div className="column-izq">
                                 <h3>Detalles</h3>
+
                                 <label>Descripción:</label>
                                 {editMode ? (
-                                    <textarea name="descripcion" value={form.descripcion || ""}
-                                        onChange={handleChange} className="textarea-descripcion" />
-                                ) : <p style={{ background: "rgb(246 246 246)", padding: "10px" }}>{form.descripcion || "Sin descripción"}</p>}
+                                    <textarea
+                                        name="descripcion"
+                                        value={form.descripcion || ""}
+                                        onChange={handleChange}
+                                        className="textarea-descripcion"
+                                    />
+                                ) : (
+                                    // AQUI ESTÁ EL CAMBIO: añadimos la clase para el estilo
+                                    <p className="descripcion-display">
+                                        {form.descripcion || "Sin descripción"}
+                                    </p>
+                                )}
 
                                 <label>Área:</label>
                                 {editMode ? (
                                     <select
                                         name="area_id"
-                                        // Usamos prioritariamente area_id del form, si no existe, el id del objeto area
                                         value={form.area_id || form.area?.id || ""}
                                         onChange={handleChange}
                                     >
-                                        <option value="">Seleccione un área</option> {/* Siempre es bueno tener una opción vacía */}
+                                        <option value="">Seleccione un área</option>
                                         {areas.map(a => (
                                             <option key={a.id} value={a.id}>{a.nombre}</option>
                                         ))}
@@ -382,6 +391,22 @@ export const VerActividad = () => {
                                     />
                                 ) : <p>{form.minutos_ejecutados} min </p>}
                             </div>
+                            {form.fecha_inicio && (
+                                <div>
+                                    <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Fecha inicio:</label>
+                                    {editMode ? (
+                                        <input
+                                            type="datetime-local"
+                                            name="fecha_inicio"
+                                            value={form.fecha_inicio?.replace(" ", "T").slice(0, 16) || ""}
+                                            onChange={handleChange}
+                                            style={{ width: "100%" }}
+                                        />
+                                    ) : (
+                                        <p>{form.fecha_inicio}</p>
+                                    )}
+                                </div>
+                            )}
                             <div>
                                 <label style={{ fontSize: "0.8em", color: "#7a7a7aff" }}>Fecha finalización:</label>
                                 {editMode ? (
@@ -510,13 +535,20 @@ export const VerActividad = () => {
                             onUpdate={cargarDetalles}
                         />
                     )}
-
+                    {(tienePermiso(['Usuario', 'JefeInmediato']) ||
+                        (currentUser?.roles?.includes('Administrador') && currentUser?.nombre_usuario === '1081515247')) && (
+                            <EnviarSolucion
+                                actividad={form}
+                                onSuccess={cargarDetalles}
+                            />
+                        )}
+                    {/* 
                     {tienePermiso(['Usuario', 'JefeInmediato']) && (
                         <EnviarSolucion
                             actividad={form}
                             onSuccess={cargarDetalles}
                         />
-                    )}
+                    )} */}
                 </div>
             </div>
             <Version />

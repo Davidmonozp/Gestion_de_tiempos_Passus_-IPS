@@ -1,12 +1,6 @@
 /* Contenedor principal */
 .calendar-container {
     width: 99%;
-    background: #ffffff;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid #edf2f7;
-    
 }
 
 /* Sección de la Leyenda */
@@ -41,18 +35,120 @@
 }
 
 /* Envoltura del calendario para controlar el overflow */
-.calendar-wrapper {
+/* .calendar-wrapper {
     position: relative;
     z-index: 1;
-    /* Para que no se encime con otros elementos de la UI */
+   max-width: 75%; 
+    width: 100%;
+} */
+
+/* 1. Contenedor Maestro: Elimina los estilos decorativos de aquí */
+.main-layout-container {
+    display: grid;
+    grid-template-columns: 75% 25%;
+    gap: 8px;
+    width: 99%;
+    /* Asegura que no exceda el ancho de su padre */
+    box-sizing: border-box;
+    /* CRUCIAL: Incluye el padding en el cálculo del 100% */
 }
+
+/* 2. Calendario: Que ocupe el 100% de su celda de grid (que ya es el 75%) */
+.calendar-wrapper {
+    border-radius: 8px;
+    min-width: 0;
+    /* IMPORTANTE: Evita que el calendario fuerce el grid */
+}
+
+/* 3. Indicadores: Asegura que ocupen el 100% de su celda de grid (el 25%) */
+.main-indicadores {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 0;
+    height: 400px;
+}
+
+.indicadores,
+.indicadores-2 {
+    background: #ffffff;
+    padding: 13px;
+    border-radius: 12px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    flex: 1;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* .indicadores:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+} */
+
+/* Títulos */
+.indicadores h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    color: #06547d;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+/* El contenedor del resumen dentro */
+.resumen-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* Espacio entre filas */
+    margin-top: 15px;
+    max-height: 115px;
+}
+
+.resumen-detalle p {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.resumen-detalle b {
+    color: #0087cd;
+}
+
+.resumen-fila {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: #475569;
+}
+
+.resumen-diferencia {
+    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 10px;
+    font-weight: 500;
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    font-size: 15px !important;
+    margin-bottom: 34px;
+}
+
+.text-danger {
+    color: #d32f2f;
+}
+
+.text-success {
+    color: #28a745;
+}
+
+
 
 /* --- Ajustes de FullCalendar --- */
 
 /* Título (Mes y Año) */
 .fc .fc-toolbar-title {
     font-size: 27px;
-        color: #06547d;
+    color: #06547d;
     font-weight: 700;
 }
 
@@ -98,4 +194,214 @@
     border: 1px solid #00934015;
     padding: 20px;
     margin-bottom: 20px;
+    font-size: 11px;
+}
+
+
+/*Estilos planeador */
+.planner-dashboard-card {
+    border-radius: 12px;
+    width: 100%;
+    height: fit-content;
+    border: 1px solid #f1f5f9;
+    gap: 28px;
+    overflow: hidden;
+    background: linear-gradient(90deg, #024363 0%, #0087cd 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    margin: 20px 0;
+}
+
+/* Grupo del encabezado */
+.card-header-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+/* Contenedor del ícono superior izquierdo */
+.small-icon-container {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Estilo exacto del ícono pequeño */
+.small-icon-container i {
+    font-size: 1.35rem;
+    color: #94a3b8;
+    /* Gris azulado de la imagen */
+}
+
+/* Contenedor de Textos */
+.title-text-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.title-text-container h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.title-text-container p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.3;
+}
+
+/* Botón "Abrir planeador" */
+.btn-open-planner {
+    background-color: #38b2ac;
+    color: white;
+    border: none;
+    padding: 15px 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 17px;
+    margin-top: 17px;
+}
+
+.btn-open-planner:hover {
+    background-color: #319795;
+    transform: scale(1.05);
+}
+
+/* --- ILUSTRACIÓN DE FONDO CON FONT AWESOME --- */
+.bg-illustration-container {
+    font-size: 87px;
+    opacity: 0.2;
+    position: absolute;
+    right: 37px;
+    top: 59%;
+    transform: translateY(-50%);
+}
+
+/* Contenedor relativo para encimar los dos íconos */
+.fa-stack-illustration {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+/* El calendario gris grande de fondo */
+.fa-stack-base {
+    font-size: 4.8rem;
+    color: #e2e8f0;
+    /* Gris muy suave */
+    position: absolute;
+    left: 0;
+    top: 5px;
+}
+
+/* El reloj superpuesto abajo a la derecha */
+.fa-stack-overlay {
+    font-size: 2.3rem;
+    color: #94a3b8;
+    /* Gris más oscuro para que resalte */
+    position: absolute;
+    bottom: 12px;
+    right: 4px;
+    background-color: #ffffff;
+    /* Fondo blanco para romper las líneas del calendario por detrás */
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px #ffffff;
+    /* Crea el efecto de espacio en blanco alrededor del reloj */
+}
+
+/* .fc-direction-ltr .fc-daygrid-event .fc-event-time {
+    margin-right: 3px;
+    font-size: 11px;
+} */
+.planner-text h3 {
+    margin: 0;
+    font-size: 24px;
+    color: white;
+    margin-bottom: 7px;
+}
+
+.planner-text .highlight {
+    color: #4fd1c5;
+    /* Un color turquesa para resaltar "INTELIGENTE" */
+}
+
+
+
+/* Lista */
+.lista-actividades-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 5px;
+    scrollbar-width: thin;
+    overflow-y: auto;
+    max-height: 133px;
+
+}
+
+/* Cada ítem de actividad */
+.actividad-item-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background-color: #004a6e;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+    border-left: 4px solid rgb(255, 0, 0);
+}
+
+.actividad-item-mini:hover {
+    transform: translateX(3px);
+    /* Efecto sutil al pasar el mouse */
+    background-color: #00324b;
+}
+
+/* Scrollbar para Chrome, Safari y Edge */
+.lista-actividades-mini::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lista-actividades-mini::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* Estilo del nombre */
+.actividad-nombre {
+    font-size: 12px;
+    font-weight: 500;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 65%;
+}
+
+/* Estilo del estado (etiqueta) */
+.actividad-estado {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    /* Estilo píldora */
+    background: #e2e8f0;
+    color: #475569;
 }

@@ -24,7 +24,7 @@ export const VistaPrincipal = () => {
         tiempoTranscurrido,
         handleEntrada,
         handleSalida
-    } = useAuth();
+    } = useAuth();                                                    
 
     // ESTADOS
     const [loading, setLoading] = useState(true);
@@ -36,6 +36,7 @@ export const VistaPrincipal = () => {
     const [statsCumplimiento, setStatsCumplimiento] = useState({
         aTiempo: 0, conRetraso: 0, pctATiempo: 0, pctConRetraso: 0
     });
+    
 
     const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6"];
     const COLORES_POR_AREA = {
@@ -196,7 +197,7 @@ export const VistaPrincipal = () => {
         fetchActividades();
     }, []);
 
-    const [coloresAreas, setColoresAreas] = useState({});
+    // const [coloresAreas, setColoresAreas] = useState({});
 
     useEffect(() => {
         const cargarColores = async () => {
@@ -209,7 +210,7 @@ export const VistaPrincipal = () => {
                     mapa[area.id] = area.color;
                 });
                 // 💡 Cambiado para que coincida con el nombre de tu estado
-                setColoresAreas(mapa);
+                // setColoresAreas(mapa);
             } catch (error) {
                 console.error("Error cargando colores de áreas", error);
             }
@@ -308,7 +309,7 @@ export const VistaPrincipal = () => {
 
 
 
-    const miArea = "Desarrollo";
+    // const miArea = "Desarrollo";
 
     const dataTreemap = useMemo(() => {
         const ajenas = actividadesRaw.filter(act => act.area?.nombre?.toUpperCase() !== "DESARROLLO");

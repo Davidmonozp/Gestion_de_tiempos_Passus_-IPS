@@ -38,7 +38,7 @@ const handleSubmit = async (e) => {
             showConfirmButton: false
         });
 
-        navigate("/vista-principal");
+        navigate("/actividades");
 
     } catch (error) {
         // Extraemos el mensaje real de tu controlador de Laravel:

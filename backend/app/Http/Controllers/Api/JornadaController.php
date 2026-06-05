@@ -181,7 +181,6 @@ class JornadaController extends Controller
         if ($dif < 0) return "Has registrado " . abs($dif) . " minutos más que tu jornada laboral.";
         return "¡Excelente! Tu tiempo de actividades coincide con tu jornada.";
     }
-    // JornadaController.php
 
     public function previsualizarSalida()
     {
@@ -269,3 +268,8 @@ class JornadaController extends Controller
     //     ]);
     // }
 }
+
+
+
+
+

@@ -1,0 +1,325 @@
+/* ==========================================================================
+   ESTILOS PARA EL PLANEADOR DE ACTIVIDADES RECURRENTES
+   ========================================================================== */
+
+.container-planear-actividad {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: repeat(1, 1fr);
+    gap: 18px;
+    margin-top: 8px;
+    min-height: calc(100vh - 8px);
+    /* Restamos los 8px del margin-top para evitar scroll innecesario */
+    height: auto;
+}
+
+/* --- DISEÑO DE LA VISTA PRINCIPAL --- */
+
+
+.planner-view-container * {
+    box-sizing: border-box;
+}
+
+.planner-main-content {
+    flex: 1 1 0%;
+    /* Permite crecer y encogerse de forma óptima ocupando el espacio disponible */
+    width: 100%;
+    /* Fuerza a tomar el 100% del contenedor padre */
+    min-width: 0;
+    /* Evita que los elementos hijos con flex o tablas rompan el layout horizontal */
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* --- ENCABEZADO --- */
+.planner-header {
+    background-color: #ffffff;
+    padding: 16px 24px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.planner-header h2 {
+    margin: 0 0 6px 0;
+    font-size: 1.25rem;
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+.planner-header p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #4b5563;
+}
+
+/* --- TARJETA FORMULARIO --- */
+.planner-card {
+    background-color: #ffffff;
+    padding: 24px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.planner-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- FILA HORIZONTAL DE INPUTS PRINCIPALES --- */
+.form-inline-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* Divide exactamente en 4 columnas idénticas */
+    gap: 16px;
+}
+
+/* Responsivo para pantallas medianas/pequeñas */
+@media (max-width: 1024px) {
+    .form-inline-group {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .form-inline-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Estilos de campos individuales */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.label-highlight {
+    color: #2563eb;
+}
+
+/* Estilización global de los inputs */
+.field-input {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+
+.field-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.textarea-input {
+    height: 40px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+/* Badge o caja estática para autoasignación */
+.auto-assign-badge {
+    height: 40px;
+    padding: 0 12px;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-full-width {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-divider {
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 4px 0;
+}
+
+/* --- SECCIÓN PROGRAMACIÓN (FECHAS Y DÍAS AL ALINEADOS) --- */
+.form-scheduling-group {
+    display: grid;
+    /* grid-template-columns: 35% 65%; */
+    /* Estructura horizontal */
+    gap: 20px;
+    align-items: end;
+}
+
+.date-range-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.date-input {
+    border-color: #bfdbfe;
+}
+
+@media (max-width: 1180px) {
+    .form-scheduling-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Caja contenedora de los días */
+.days-selector-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.days-checkbox-row {
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 11px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    flex-wrap: wrap;
+    margin-left: 10px;
+    gap: 10px;
+}
+
+.day-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #4b5563;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* --- FOOTER DEL FORMULARIO --- */
+.form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9fafb;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    margin-top: 10px;
+}
+
+.switches-group {
+    display: flex;
+    gap: 24px;
+}
+
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch-input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.switch-text {
+    font-size: 0.85rem;
+    color: #4b5563;
+}
+
+.submit-container {
+    min-width: 240px;
+}
+
+.submit-btn {
+    width: 100%;
+    height: 42px;
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: #1d4ed8;
+}
+
+.submit-btn:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* --- ANIMACIÓN DEL SPINNER --- */
+.loader-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .form-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .switches-group {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+

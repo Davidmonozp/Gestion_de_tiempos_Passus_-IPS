@@ -1,0 +1,463 @@
+/* FONDO OSCURO */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.swal2-container {
+    z-index: 10000 !important;
+    /* Un número mayor al z-index de tu modal */
+}
+
+
+/* CONTENEDOR MODAL */
+.modal-content {
+    width: 90%;
+    max-width: 850px;
+    max-height: 90vh;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+    animation: modalFade 0.25s ease;
+
+    /* CAMBIOS AQUÍ: Transformamos el modal en un flexbox vertical */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Evita que el modal completo haga scroll */
+}
+
+/* HEADER (Siempre se queda fijo arriba) */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-shrink: 0;
+    /* Evita que el header se aplaste */
+}
+
+.modal-header h2 {
+    color: #06547d;
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.modal-close {
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    color: #6b7280;
+    transition: 0.2s;
+}
+
+.modal-close:hover {
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+
+
+.btn-close {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    /* Hace que el fondo al hacer hover sea un círculo perfecto */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    /* Gris sutil por defecto */
+    font-size: 1.1rem;
+    /* Controla el tamaño del icono de Font Awesome */
+    transition: all 0.2s ease;
+}
+
+.btn-close:hover {
+    color: #ef4444;
+    /* El icono cambia a rojo */
+    background-color: #fee2e2;
+    /* Fondo rojo muy suave */
+    transform: scale(1.08);
+    /* Crece sutilmente */
+}
+
+.btn-close:active {
+    transform: scale(0.95);
+    /* Efecto de pulsación al hacer clic */
+}
+
+
+
+.modal-input {
+    flex: 1;
+    /* Para que siga ocupando el espacio disponible si está en un flexbox */
+    padding: 0.75rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    /* Usa tu variable, si no existe caerá en gris */
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s;
+    /* Transición suave enfocada en el color del borde */
+    background-color: #ffffff;
+    color: #1f2937;
+}
+
+/* Estado Focus para cuando el usuario hace clic en el input */
+.modal-input:focus {
+    border-color: #0087cd;
+    /* O el color de tu marca var(--primary-color) */
+    box-shadow: 0 0 0 3px rgba(0, 135, 205, 0.15);
+    /* Opcional: un sutil destello azul */
+}
+
+/* AREA (Siempre se queda fijo arriba) */
+.area-create {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-shrink: 0;
+    /* Evita que esta barra se aplaste */
+}
+
+.area-create input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+.area-create input:focus {
+    border-color: #0087cd;
+}
+
+/* NUEVO CONTENEDOR CON SCROLL INTERNO */
+/* Este contenedor es el que encierra a tu {areas.map(...)} */
+.areas-container {
+    overflow-y: auto;
+    /* El scroll sigue viviendo aquí */
+    flex-grow: 1;
+    /* Toma todo el espacio restante del modal */
+    padding-right: 10px;
+    /* Un poquito más de espacio para que el scroll no tape las tarjetas */
+
+    /* NUEVA CONFIGURACIÓN PARA 2 COLUMNAS */
+    display: grid;
+    /* Crea dos columnas de igual tamaño (1fr cada una) */
+    grid-template-columns: repeat(2, 1fr);
+    /* Espacio de separación entre las tarjetas (horizontal y vertical) */
+    gap: 16px;
+    /* Alinea las tarjetas al principio verticalmente por si una es más alta que otra */
+    align-items: start;
+}
+
+/* BOTONES */
+.modal-btn {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.boton {
+    padding: 10px;
+    background-image: linear-gradient(-20deg, #00933f 0%, #30ec81 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 10px;
+}
+
+.boton:hover {
+    background-image: linear-gradient(-20deg, #30ec81 0%, #00933f 100%);
+    transform: translateY(-2px);
+    opacity: 0.95;
+}
+
+/* Contenedor de las acciones de la actividad (por si necesitas alinearlos) */
+.acciones-actividad {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Clase base para los iconos de las actividades (más compactos) */
+.btn-icon-sub {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    /* Menos padding para que no ocupe tanto espacio */
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    /* Un poco más pequeño que el de las áreas */
+    transition: all 0.2s ease;
+}
+
+/* Estilo para EDITAR ACTIVIDAD */
+.btn-icon-sub.btn-edit-sub {
+    color: #6b7280;
+    /* Gris sutil por defecto */
+}
+
+.btn-icon-sub.btn-edit-sub:hover {
+    color: #0087cd;
+    /* El azul de tu marca */
+    background-color: #f0f9ff;
+    /* Fondo azul muy suave */
+    transform: scale(1.08);
+}
+
+/* Estilo para ELIMINAR ACTIVIDAD */
+.btn-icon-sub.btn-delete-sub {
+    color: #9ca3af;
+    /* Gris claro por defecto */
+}
+
+.btn-icon-sub.btn-delete-sub:hover {
+    color: #ef4444;
+    /* Rojo de advertencia */
+    background-color: #fee2e2;
+    /* Fondo rojo suave */
+    transform: scale(1.08);
+}
+
+/* Efecto al hacer clic */
+.btn-icon-sub:active {
+    transform: scale(0.95);
+}
+
+/* Clase base para botones de confirmación/guardado rápidos */
+.btn-icon-action {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    /* Mismo tamaño que los botones de editar/eliminar áreas */
+    transition: all 0.2s ease;
+}
+
+/* Estilo específico para GUARDAR (Verde de éxito) */
+.btn-icon-action.btn-save {
+    color: #4b5563;
+    font-size: 23px;
+}
+
+.btn-icon-action.btn-save:hover {
+    color: #10b981;
+    /* Verde esmeralda para reflejar guardado exitoso */
+    background-color: #ecfdf5;
+    /* Fondo verde muy sutil */
+    transform: scale(1.08);
+}
+
+/* Efecto al hacer clic */
+.btn-icon-action:active {
+    transform: scale(0.95);
+}
+
+/* Clase base para botones que solo contienen un icono */
+.btn-icon {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    /* Bordes ligeramente redondeados para el área del hover */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    /* Controla el tamaño del icono de Font Awesome */
+    transition: all 0.2s ease;
+}
+
+/* Estilo específico para EDITAR (Azul / Grisáceo) */
+.btn-icon.btn-edit {
+    color: #4b5563;
+    /* Gris intermedio por defecto */
+}
+
+.btn-icon.btn-edit:hover {
+    color: #0087cd;
+    /* Cambia al azul de tu marca */
+    background-color: #e0f2fe;
+    /* Fondo azul muy sutil */
+    transform: scale(1.08);
+}
+
+/* Estilo específico para ELIMINAR (Rojo) */
+.btn-icon.btn-delete {
+    color: #9ca3af;
+    /* Gris claro por defecto para que no llame tanto la atención hasta el hover */
+}
+
+.btn-icon.btn-delete:hover {
+    color: #ef4444;
+    /* Rojo vibrante de advertencia */
+    background-color: #fee2e2;
+    /* Fondo rojo sutil */
+    transform: scale(1.08);
+}
+
+/* Efecto de pulsación general al hacer clic */
+.btn-icon:active {
+    transform: scale(0.95);
+}
+
+.modal-btn-primary:hover {
+    background: #006da5;
+}
+
+.modal-btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.modal-btn-danger:hover {
+    background: #dc2626;
+}
+
+/* TARJETAS DE AREAS */
+.area-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    margin-top: 18px;
+    background: #f9fafb;
+}
+
+.area-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.area-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* ACTIVIDADES */
+.actividades-list {
+    margin-left: 10px;
+}
+
+.actividad-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+.actividad-name {
+    font-size: 14px;
+    color: #374151;
+}
+
+/* NUEVA ACTIVIDAD */
+.actividad-create {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.actividad-create input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    outline: none;
+}
+
+.actividad-create input:focus {
+    border-color: #0087cd;
+}
+
+/* SCROLL PERSONALIZADO (Pasado al contenedor interno) */
+.areas-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.areas-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+/* ANIMACION */
+@keyframes modalFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        padding: 18px;
+    }
+
+    .area-create,
+    .actividad-create {
+        flex-direction: column;
+    }
+
+    .area-top,
+    .actividad-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}

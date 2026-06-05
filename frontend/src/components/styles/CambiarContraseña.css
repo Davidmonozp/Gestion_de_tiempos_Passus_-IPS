@@ -1,0 +1,89 @@
+/* Contenedor principal que centra el componente en pantalla */
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Estilo de la tarjeta */
+.card {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    width: 100%;
+    max-width: 400px;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0px 3px #0093408b, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #0093400b;
+    background: radial-gradient(circle, #00934009, #dadada0a);
+}
+
+.card h3 {
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    color: #06547d;
+    font-size: 22px;
+}
+
+/* Estilo de los inputs */
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    /* Importante para que el padding no rompa el ancho */
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Estilo del botón */
+.boton {
+    width: 100%;
+    padding: 10px 5px;
+    background-image: linear-gradient(-20deg, #00933f 0%, #30ec81 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 9px;
+}
+
+.password-container {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.password-toggle:focus {
+    outline: none;
+}
+

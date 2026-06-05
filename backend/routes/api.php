@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\EvidenciaController;
 use App\Http\Controllers\Api\JornadaController;
 use App\Http\Controllers\Api\SolicitudActividadController;
+use App\Http\Controllers\Api\TipoActividadController;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Mail\NuevaActividadAsignada;
@@ -37,6 +38,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/editar-usuario/{id}', [UsuarioController::class, 'update']);
     Route::get('/ver-usuario/{id}', [UsuarioController::class, 'show']);
     Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'toggleStatus']);
+    Route::post('/user/change-my-password', [UsuarioController::class, 'changeMyPassword']);
 
 
     // Rutas de Actividades y Evidencias
@@ -62,14 +64,14 @@ Route::middleware('auth:api')->group(function () {
     // Rutas para revisar actividad por el jefe
     Route::post('/actividades/{id}/revisar', [EvidenciaController::class, 'revisarActividad']);
 
-    // rutas de solicitudes de aplazamiento o cancelacion 
+    // rutas de solicitudes de aplazamiento o cancelacion
     Route::post('/solicitudes', [SolicitudActividadController::class, 'store']);
     Route::put('/solicitudes/{id}/decidir', [SolicitudActividadController::class, 'decidir']);
     Route::get('/actividades/{id}/historial', function ($id) {
         return SolicitudActividad::where('actividad_id', $id)->with('solicitante')->get();
     });
 
-    // Rutas para notificaciones 
+    // Rutas para notificaciones
     Route::get('/notificaciones', function () {
         // Retorna las notificaciones sin leer del usuario del token JWT
         return Auth::user()->unreadNotifications;
@@ -96,4 +98,20 @@ Route::middleware('auth:api')->group(function () {
 
     // Rutas de aplazamiento de una actividad
     Route::post('/solicitudes/decidir/{id}', [SolicitudActividadController::class, 'decidir']);
+
+    // Rutas para modulo administrativo de areas
+    Route::get('/ver-areas', [AreaController::class, 'index']);
+    Route::post('/crear-area', [AreaController::class, 'store']);
+    Route::put('/editar-area/{id}', [AreaController::class, 'update']);
+    Route::delete('/eliminar-area/{id}', [AreaController::class, 'destroy']);
+
+    // Rutas para modulo administrativo de tipo_actividad
+    Route::get('/tipos-actividad', [TipoActividadController::class, 'index']);
+    Route::post('/tipos-actividad', [TipoActividadController::class, 'store']);
+    Route::get('/tipos-actividad/{id}', [TipoActividadController::class, 'show']);
+    Route::put('/tipos-actividad/{id}', [TipoActividadController::class, 'update']);
+    Route::delete('/tipos-actividad/{id}', [TipoActividadController::class, 'destroy']);
+
+    // Ruta planeador actividades
+    Route::post('/crear-actividades-recurrentes', [ActividadController::class, 'storeRecurrentes']);
 });

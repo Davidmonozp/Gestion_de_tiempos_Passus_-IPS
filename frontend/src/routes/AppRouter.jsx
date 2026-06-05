@@ -11,6 +11,9 @@ import CalendarioActividades from "../pages/actividades/CalendarioActividades";
 import { ListarUsuarios } from "../pages/usuarios/ListarUsuarios";
 import CrearUsuario from "../pages/usuarios/CrearUsuario";
 import { EditarUsuario } from '../pages/usuarios/EditarUsuario';
+import { PlaneadorActividades } from "../components/PlaneadorActividades";
+import { GestionAreas } from "../pages/actividades/GestionAreas";
+import { CambiarContrasena } from "../components/CambiarContraseña";
 
 const Dashboard = () => <h1>Dashboard</h1>;
 
@@ -33,10 +36,15 @@ const AppRouter = () => {
           <Route path="/ver-actividad/:id" element={<VerActividad />} />
           <Route path="/vista-principal" element={<VistaPrincipal />} />
           <Route path="/calendario" element={<CalendarioActividades />} />
+          <Route path="/crear-actividades-recurrentes" element={<PlaneadorActividades />} />
+          <Route path="/cambiar-contraseña" element={<CambiarContrasena />} />
+
+
           <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
             <Route path="/crear-usuario" element={<CrearUsuario />} />
             <Route path="/usuarios" element={<ListarUsuarios />} />
             <Route path="/editar-usuario/:id" element={<EditarUsuario />} />
+            <Route path="/gestion-areas" element={<GestionAreas />} />
           </Route>
         </Route>
 

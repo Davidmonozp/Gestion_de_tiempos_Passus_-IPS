@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect, useRef } from "react";
+import { createContext, useState, useContext, useEffect, useRef, useCallback } from "react";
 import api from "../services/api";
 import Swal from 'sweetalert2';
 
@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [jornadaActiva, setJornadaActiva] = useState(!!localStorage.getItem("jornada_inicio"));
     const [segundos, setSegundos] = useState(0);
     const timerRef = useRef(null);
+    const [horaInicio, setHoraInicio] = useState(localStorage.getItem("hora_inicio_formateada") || null);
 
     // Formatea segundos a HH:MM:SS para la interfaz
     const formatearTiempo = (s) => {
@@ -24,12 +25,19 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await api.get('/jornada/estado');
             if (res.data.jornada_activa) {
-                const inicio = new Date(res.data.datos.hora_entrada).getTime();
-                localStorage.setItem("jornada_inicio", inicio.toString());
+                const fecha = new Date(res.data.datos.hora_entrada);
+                const horaFormateada = fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                localStorage.setItem("jornada_inicio", fecha.getTime().toString());
+                localStorage.setItem("hora_inicio_formateada", horaFormateada);
+
                 setJornadaActiva(true);
+                setHoraInicio(horaFormateada);
             } else {
                 localStorage.removeItem("jornada_inicio");
+                localStorage.removeItem("hora_inicio_formateada");
                 setJornadaActiva(false);
+                setHoraInicio(null);
                 setSegundos(0);
             }
         } catch (error) {
@@ -64,9 +72,15 @@ export const AuthProvider = ({ children }) => {
     const handleEntrada = async () => {
         try {
             const res = await api.post('/jornada/entrada');
-            const inicio = new Date(res.data.data.hora_entrada).getTime();
-            localStorage.setItem("jornada_inicio", inicio.toString());
+            const fechaEntrada = new Date(res.data.data.hora_entrada);
+            const horaFormateada = fechaEntrada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            localStorage.setItem("jornada_inicio", fechaEntrada.getTime().toString());
+            localStorage.setItem("hora_inicio_formateada", horaFormateada);
+
+            setHoraInicio(horaFormateada);
             setJornadaActiva(true);
+
             Swal.fire({ icon: 'success', title: 'Jornada Iniciada', timer: 1500, showConfirmButton: false });
         } catch (error) {
             if (error.response?.status === 400) {
@@ -115,7 +129,7 @@ export const AuthProvider = ({ children }) => {
                     logout();
                 }
             }
-        } catch (error) {
+        } catch {
             Swal.fire('Error', 'No se pudo calcular el balance de actividades', 'error');
         }
     };
@@ -132,9 +146,9 @@ export const AuthProvider = ({ children }) => {
 
             setUser(userData);
 
-            return response.data; // Retornamos los datos por si el componente los necesita
+            return response.data; 
 
-        } catch (error) {
+        } catch {
             // MUY IMPORTANTE: Lanzamos el error hacia afuera
             // Esto hace que el 'catch' de tu handleSubmit en Login.jsx se active
             throw error;
@@ -142,10 +156,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.clear();
+        localStorage.removeItem('actividades_filtros');
+        localStorage.removeItem('actividades');
+        localStorage.removeItem('ver_todo_el_area');
+
+        localStorage.removeItem('token');
+
         setJornadaActiva(false);
         setSegundos(0);
         setUser(null);
+
         window.location.href = "/login";
     };
 
@@ -156,11 +176,22 @@ export const AuthProvider = ({ children }) => {
         return permitido.includes(rolActual);
     };
 
+    const obtenerResumenJornada = async () => {
+        try {
+            const res = await api.get('/jornada/previsualizar-salida');
+            return res.data.calculo;
+        } catch (error) {
+            console.error("Error al obtener resumen:", error);
+            return null;
+        }
+
+    }
+
     return (
         <AuthContext.Provider value={{
             user, login, logout, tienePermiso,
             tiempoTranscurrido: formatearTiempo(segundos),
-            jornadaActiva, handleEntrada, handleSalida
+            jornadaActiva, horaInicio, handleEntrada, handleSalida, obtenerResumenJornada
         }}>
             {children}
         </AuthContext.Provider>

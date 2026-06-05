@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./styles/Navbar.css";
 import { Notificationes } from "./Notificaciones";
-import { useAuth } from "../context/AuthContext";
 import { FloatingTimer } from "./FloatingTimer";
+import { useAuth } from "../context/AuthContext";
 import { tienePermiso } from "../utils/Permisos";
 
 export const Navbar = () => {
@@ -27,7 +27,7 @@ export const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="navbar-container">
-                <Link to="/vista-principal" className="logo" onClick={closeMenu}>
+                <Link to="/actividades" className="logo" onClick={closeMenu}>
                     <img className="img-navbar" src="/logoPassusTransp.png" alt="" />
                 </Link>
 
@@ -47,15 +47,15 @@ export const Navbar = () => {
                 </button>
 
                 <div className={`navbar-links ${open ? "show" : ""}`}>
-                    <Link to="/vista-principal" onClick={closeMenu}>Inicio</Link>
-                    <Link to="/actividades" onClick={closeMenu}>Actividades</Link>
+                    <Link to="/actividades" onClick={closeMenu}>Inicio</Link>
+                    <Link to="/vista-principal" onClick={closeMenu}>Dashboard</Link>
                     {/* <Link to="/calendario" onClick={closeMenu}>Calendario</Link> */}
                     {/* <Link to="/vista-principal" onClick={closeMenu}>Reportes</Link> */}
                     {/* --- DROPDOWN DE CONFIGURACIÓN --- */}
                     <div className="user-dropdown">
 
-                        {/* {tienePermiso(['Administrador', 'JefeInmediato']) && (
-                            <> */}
+                        {tienePermiso(['Administrador']) && (
+                            <>
                                 <button
                                     className="user-button"
                                     onClick={() => {
@@ -78,10 +78,20 @@ export const Navbar = () => {
                                         >
                                             Usuarios
                                         </Link>
+                                        <Link
+                                            to="/gestion-areas"
+                                            className="menu-item"
+                                            onClick={() => {
+                                                setOpenConfig(false);
+                                                closeMenu();
+                                            }}
+                                        >
+                                            Áreas y Actividades
+                                        </Link>
                                     </div>
                                 )}
-                            {/* </>
-                        )} */}
+                            </>
+                        )}
                     </div>
 
                     <Notificationes />
@@ -100,11 +110,20 @@ export const Navbar = () => {
 
                         {openUser && (
                             <div className="user-menu">
+                                <Link
+                                    to="/cambiar-contraseña"
+                                    className="menu-item"
+                                    onClick={() => setOpenUser(false)}
+                                >
+                                    Cambiar contraseña
+                                </Link>
                                 <button className="menu-item" onClick={handleLogout}>
                                     Cerrar sesión
                                 </button>
                             </div>
+
                         )}
+
                     </div>
                 </div>
             </div>

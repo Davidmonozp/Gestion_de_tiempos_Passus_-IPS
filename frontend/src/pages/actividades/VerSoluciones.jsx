@@ -26,7 +26,7 @@ export const VerSoluciones = ({ evidencias = [], revisiones = [], solicitudes = 
             <hr />
 
             <div className="soluciones-list">
-                {historial.map((item, index) => {
+                {historial.map((item) => {
 
                     if (item.tipoItem === 'solucion') {
                         contadorSoluciones++;

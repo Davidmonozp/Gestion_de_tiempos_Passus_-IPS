@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
 import "./styles/Actividades.css";
@@ -7,6 +7,8 @@ import { Sidebar } from "../../components/Sidebar";
 import { Version } from "../../components/Version";
 import CalendarioActividades from "./CalendarioActividades";
 import { tienePermiso } from "../../utils/Permisos";
+import { useAuth } from '../../context/AuthContext';
+import { FiltrosActividades } from "../../components/FiltrosActividades";
 
 export const Actividades = () => {
     const [actividades, setActividades] = useState([]);
@@ -14,9 +16,30 @@ export const Actividades = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [vista, setVista] = useState("calendario");
+    const [filtros, setFiltros] = useState(() => {
+        const guardados = localStorage.getItem('actividades_filtros');
+        return guardados ? JSON.parse(guardados) : {
+            id: '',
+            nombre: '',
+            estado: '',
+            fecha_desde: '',
+            fecha_hasta: '',
+            area_id: '',
+            asignado_a: ''
+        };
+    });
+    const [filtrosAplicados, setFiltrosAplicados] = useState(() => {
+        const guardados = localStorage.getItem('actividades_filtros');
+        return guardados ? JSON.parse(guardados) : {};
+    });
+
+    const actividadesMemorizadas = useMemo(() => actividades, [actividades]);
 
     // 🟢 ESTADO PARA EL FILTRO: false = solo mías, true = todo el área
     const [verTodoElArea, setVerTodoElArea] = useState(false);
+    const {
+        tiempoTranscurrido, handleEntrada, handleSalida, jornadaActiva, horaInicio
+    } = useAuth();
 
     const TEXTOS_ESTADOS = {
         Por_corregir: "Por corregir",
@@ -25,62 +48,73 @@ export const Actividades = () => {
     };
 
     const BASE_URL = api.defaults.baseURL.replace(/\/api$/, "");
+    const fetchActividades = async () => {
+        try {
+            // Solo mostramos el loader si NO tenemos datos previos
+            if (actividades.length === 0) setLoading(true);
+
+            const params = {
+                todo_el_area: verTodoElArea ? 1 : 0,
+                ...filtrosAplicados
+            };
+
+            if (vista === "calendario") {
+                params.sin_paginar = 1;
+            } else {
+                params.page = currentPage;
+            }
+
+            const response = await api.get(`/ver-actividades`, { params });
+
+            const rawData = response.data.data || response.data;
+            const listaActividades = Array.isArray(rawData) ? rawData : [];
+
+            // Ordenamiento
+            const datosOrdenados = listaActividades.sort((a, b) => b.id - a.id);
+
+            // PERSISTENCIA: Guardamos para la próxima visita
+            localStorage.setItem("actividades", JSON.stringify(datosOrdenados));
+
+            // Actualizamos estado
+            setActividades(datosOrdenados);
+
+            if (response.data.last_page) {
+                setLastPage(response.data.last_page);
+            }
+
+        } catch (error) {
+            console.error("Error al obtener actividades:", error.response?.data || error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+    useEffect(() => {
+        localStorage.setItem('actividades_filtros', JSON.stringify(filtros));
+    }, [filtros]);
 
     useEffect(() => {
-        const fetchActividades = async () => {
-            try {
-                // Solo mostramos el loader principal si no hay datos previos 
-                // para evitar parpadeos molestos al cambiar de vista
-                if (actividades.length === 0) setLoading(true);
-
-                // 1. Preparamos los parámetros base
-                const params = {
-                    todo_el_area: verTodoElArea ? 1 : 0,
-                };
-
-                // 2. Lógica condicional según la vista
-                if (vista === "calendario") {
-                    // Enviamos un flag para que Laravel devuelva TODO (get())
-                    params.sin_paginar = 1;
-                } else {
-                    // Enviamos la página actual para que Laravel devuelva solo 10-15 (paginate())
-                    params.page = currentPage;
-                }
-
-                const response = await api.get(`/ver-actividades`, { params });
-
-                // 3. Manejo de la respuesta (Laravel devuelve los datos en .data si es paginado)
-                const rawData = response.data.data || response.data;
-
-                // Validamos que sea un array antes de ordenar
-                const listaActividades = Array.isArray(rawData) ? rawData : [];
-
-                const datosOrdenados = listaActividades.sort((a, b) => b.id - a.id);
-
-                setActividades(datosOrdenados);
-
-                // 4. Actualizamos el total de páginas solo si la respuesta es paginada
-                if (response.data.last_page) {
-                    setLastPage(response.data.last_page);
-                }
-
-            } catch (error) {
-                console.error(
-                    "Error al obtener actividades:",
-                    error.response?.data || error.message
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchActividades();
-
-
-    }, [currentPage, verTodoElArea, vista]);
+        // Stringify convierte el objeto en un string para que React pueda compararlo bien
+    }, [currentPage, verTodoElArea, vista, JSON.stringify(filtrosAplicados)]);
 
     if (loading) return <p className="loading-text">Cargando actividades...</p>;
 
+    const handleApply = () => {
+        setCurrentPage(1); // Reiniciar paginación
+        setFiltrosAplicados(filtros); // Al hacer esto, el useEffect se dispara automáticamente
+    };
+
+const handleClearFiltros = () => {
+    const filtrosVacios = {
+        id: '', nombre: '', estado: '',
+        fecha_desde: '', fecha_hasta: '',
+        area_id: '', asignado_a: ''
+    };
+    
+    setFiltros(filtrosVacios);         // Limpia el estado de los inputs
+    setFiltrosAplicados(filtrosVacios); // Dispara el useEffect de fetchActividades
+    localStorage.removeItem('actividades_filtros'); // Limpia la persistencia
+};
     return (
         <>
             <Navbar />
@@ -91,6 +125,35 @@ export const Actividades = () => {
                         <h1>
                             {verTodoElArea ? "Actividades del Área" : "Mis Actividades"}
                         </h1>
+                        {/* <div className='cronometro-actividades'>{tiempoTranscurrido}</div> */}
+                        <div className='cronometro-actividades'>
+                            {/* COL 1: Hora */}
+                            {jornadaActiva && horaInicio ? (
+                                <div className="hora-inicio-wrapper">
+                                    <label>Turno activo</label>
+                                    <span className="hora-valor">Desde {horaInicio}</span>
+                                </div>
+                            ) : (
+                                <div className="hora-inicio-wrapper estado-inactivo">
+                                    <label>Turno no iniciado</label>
+                                    <span className="hora-valor">--:--</span>
+                                </div>
+                            )}
+
+                            {/* COL 2: Tiempo */}
+                            <span className="tiempo-cronometro">{tiempoTranscurrido}</span>
+
+                            {/* COL 3: Botón */}
+                            {!jornadaActiva ? (
+                                <button className='entrada-actividades' onClick={handleEntrada}>
+                                    Iniciar Entrada
+                                </button>
+                            ) : (
+                                <button className='salida-actividades' onClick={handleSalida}>
+                                    Registrar Salida
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="view-actions">
@@ -113,13 +176,17 @@ export const Actividades = () => {
                         >
                             <i className="fa-solid fa-calendar-days"></i>
                         </button>
-
                         <Link to="/crear-actividades">
                             <button className="btn-crear">Crear actividad</button>
                         </Link>
 
+                        <Link to="/crear-actividades-recurrentes">
+                            <button className="btn-crear">Planeador de Actividades</button>
+                        </Link>
+
+
                         {/* 🟢 BOTÓN DE FILTRO RESPETANDO TU DISEÑO ORIGINAL */}
-                        {tienePermiso(["JefeInmediato"]) && (
+                        {tienePermiso(["JefeInmediato", "Administrador"]) && (
                             <button
                                 onClick={() => {
                                     setVerTodoElArea(!verTodoElArea);
@@ -137,6 +204,12 @@ export const Actividades = () => {
                         )}
                     </div>
 
+                    <FiltrosActividades
+                        filtros={filtros}
+                        setFiltros={setFiltros}
+                        onApply={handleApply}
+                        onClear={handleClearFiltros}
+                    />
                     {actividades.length === 0 ? (
                         <p>No hay actividades registradas.</p>
                     ) : (
@@ -223,7 +296,7 @@ export const Actividades = () => {
                             )}
 
                             {vista === "calendario" && (
-                                <CalendarioActividades actividades={actividades} />
+                                <CalendarioActividades actividades={actividadesMemorizadas} />
                             )}
                         </div>
                     )}
@@ -253,6 +326,7 @@ export const Actividades = () => {
                                     →
                                 </button>
                             </nav>
+
                         </div>
                     )}
                 </div>

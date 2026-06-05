@@ -1,0 +1,107 @@
+   .container-creacion {
+       display: grid;
+       grid-template-columns: 2fr 1fr;
+       /* gap: 10px; */
+   }
+
+   .actv-form-container {
+       width: 98%;
+   }
+
+   .grid-form-container-crear {
+       display: grid;
+       grid-template-columns: 1fr 1fr 1fr;
+       margin-bottom: 3px;
+       gap: 10px;
+       padding: 10px;
+       border-radius: 16px;
+       box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+       border: 1px solid #00934015;
+       margin-bottom: 37px;
+   }
+
+   .form-group input,
+   .form-group select {
+       padding: 6px;
+       border: 1px solid var(--border-color);
+       border-radius: 8px;
+       font-size: 13px;
+       transition: border 0.3s;
+   }
+
+   .actividad_form select,
+   .actividad_form textarea {
+       width: 100%;
+       padding: 10px;
+       border-radius: 8px;
+       border: 1px solid #ddd;
+       transition: 0.2s ease;
+       font-size: 12px;
+   }
+
+   .form_input,
+   .form_select,
+   .form_textarea {
+       width: 100%;
+       padding: 8px;
+       border: 1px solid #cbd5e0;
+       border-radius: 6px;
+       font-size: 12px;
+       transition: all 0.2s;
+       box-sizing: border-box;
+   }
+
+   .form_textarea {
+       height: 44px;
+       resize: vertical;
+   }
+
+   .checkbox_group {
+       display: flex;
+       margin-top: 4px;
+       gap: 7px;
+       flex-direction: column;
+   }
+
+   .checkbox_label {
+       display: flex;
+       align-items: center;
+       cursor: pointer;
+       font-size: 13px;
+       color: #4a5568;
+   }
+
+   .file-upload-btn {
+       display: inline-block;
+       padding: 10px;
+       background: #edf2f7;
+       border: 1px dashed #4a5568;
+       border-radius: 6px;
+       cursor: pointer;
+       font-weight: 600;
+       transition: background 0.2s;
+       font-size: 11px;
+   }
+
+   .form_actions {
+       display: flex;
+       justify-content: flex-end;
+       gap: 1rem;
+       margin-top: -21px;
+       padding-top: 1.5rem;
+       /* border-top: 1px solid var(--border-color); */
+   }
+
+   .btn_submit_main {
+       width: 96%;
+       padding: 10px 5px;
+       background-image: linear-gradient(-20deg, #00933f 0%, #30ec81 100%);
+       color: white;
+       border: none;
+       border-radius: 8px;
+       font-size: 13px;
+       font-weight: 700;
+       cursor: pointer;
+       transition: background 0.2s;
+       margin-top: 9px;
+   }

@@ -22,6 +22,7 @@ class Actividad extends Model
         'requiere_aprobacion',
         'notificar_asignacion',
         'estado',
+        'fecha_inicio',
         'fecha_finalizacion',
         'aprobada_por',
         'fecha_aprobacion',
