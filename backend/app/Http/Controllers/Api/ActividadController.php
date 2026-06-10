@@ -165,7 +165,7 @@ class ActividadController extends Controller
                 ]);
             }
 
-            return response()->json($query->latest()->paginate(10));
+            return response()->json($query->latest()->paginate(20));
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

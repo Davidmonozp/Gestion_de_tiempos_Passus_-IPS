@@ -295,14 +295,14 @@ h1 {
 }
 
 .tabla-container {
-    width: 90%;
+    width: 100%;
     margin: 0 auto;
     background: #ffffff;
-    padding: 35px;
+    padding: 0px;
     border-radius: 16px;
     box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
     border: 1px solid #00934015;
-
+    font-size: 11px;
     overflow-x: auto;
     display: block;
     -webkit-overflow-scrolling: touch;
@@ -408,7 +408,7 @@ h1 {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin: 50px 0 20px 0;
+    margin: 3px 0 37px -172px;
     padding: 10px;
     clear: both;
 }
@@ -560,5 +560,8 @@ h1 {
         gap: 17px;
         justify-items: center;
         padding: 40px 15px;
+    }
+    .tabla-container {
+        font-size: 14px;
     }
 }

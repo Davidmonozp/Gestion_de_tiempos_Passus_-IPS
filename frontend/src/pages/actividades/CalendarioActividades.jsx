@@ -47,12 +47,12 @@ const CalendarioActividades = ({ actividades }) => {
         return `${h}h ${m}m`;
     };
 
-   const actividadesProgramadas = useMemo(() => {
-    return actividades
-        .filter(act => act.estado && act.estado.toLowerCase() === 'programada')
-        .sort((a, b) => new Date(b.fecha_inicio || b.created_at) - new Date(a.fecha_inicio || a.created_at));
+    const actividadesProgramadas = useMemo(() => {
+        return actividades
+            .filter(act => act.estado && act.estado.toLowerCase() === 'programada')
+            .sort((a, b) => new Date(b.fecha_inicio || b.created_at) - new Date(a.fecha_inicio || a.created_at));
         // Hemos eliminado el .slice(0, 5) para que no se pierdan actividades
-}, [actividades]);
+    }, [actividades]);
 
     useEffect(() => {
         if (jornadaActiva) {

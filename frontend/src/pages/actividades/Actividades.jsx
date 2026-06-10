@@ -11,6 +11,11 @@ import { useAuth } from '../../context/AuthContext';
 import { FiltrosActividades } from "../../components/FiltrosActividades";
 
 export const Actividades = () => {
+
+
+
+
+
     const [actividades, setActividades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -28,6 +33,46 @@ export const Actividades = () => {
             asignado_a: ''
         };
     });
+
+
+
+
+    const minutosProgramados = useMemo(() => {
+        // 1. Obtenemos el día, mes y año de hoy en tu zona horaria
+        const hoy = new Date();
+        const hoyStr = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
+
+        return actividades.reduce((total, act) => {
+            // 2. Convertimos el string 'created_at' a objeto Date para extraer sus partes locales
+            const fechaAct = new Date(act.created_at);
+            const fechaActStr = `${fechaAct.getFullYear()}-${fechaAct.getMonth() + 1}-${fechaAct.getDate()}`;
+
+
+            // 3. Comparamos los strings (ej: "2026-6-2" === "2026-6-2")
+            if (fechaActStr === hoyStr) {
+                const mins = parseInt(act.minutos_planeados) || 0;
+                return total + mins;
+            }
+
+            return total;
+        }, 0);
+    }, [actividades]);
+
+    // 2. Asegúrate de tener esta función auxiliar definida ANTES del return
+    const formatoTiempo = (mins) => {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return `${h}h ${m}m`;
+    };
+
+    const actividadesProgramadas = useMemo(() => {
+        return actividades
+            .filter(act => act.estado && act.estado.toLowerCase() === 'programada')
+            .sort((a, b) => new Date(b.fecha_inicio || b.created_at) - new Date(a.fecha_inicio || a.created_at));
+        // Hemos eliminado el .slice(0, 5) para que no se pierdan actividades
+    }, [actividades]);
+    const [resumenDia, setResumenDia] = useState(null);
+
     const [filtrosAplicados, setFiltrosAplicados] = useState(() => {
         const guardados = localStorage.getItem('actividades_filtros');
         return guardados ? JSON.parse(guardados) : {};
@@ -38,8 +83,16 @@ export const Actividades = () => {
     // 🟢 ESTADO PARA EL FILTRO: false = solo mías, true = todo el área
     const [verTodoElArea, setVerTodoElArea] = useState(false);
     const {
-        tiempoTranscurrido, handleEntrada, handleSalida, jornadaActiva, horaInicio
+        tiempoTranscurrido, handleEntrada, handleSalida, jornadaActiva, horaInicio, obtenerResumenJornada
     } = useAuth();
+
+    useEffect(() => {
+        if (jornadaActiva && typeof obtenerResumenJornada === 'function') {
+            obtenerResumenJornada().then((data) => {
+                if (data) setResumenDia(data);
+            });
+        }
+    }, [jornadaActiva, obtenerResumenJornada]);
 
     const TEXTOS_ESTADOS = {
         Por_corregir: "Por corregir",
@@ -65,6 +118,9 @@ export const Actividades = () => {
             }
 
             const response = await api.get(`/ver-actividades`, { params });
+            if (response.data.resumen) {
+                setResumenDia(response.data.resumen);
+            }
 
             const rawData = response.data.data || response.data;
             const listaActividades = Array.isArray(rawData) ? rawData : [];
@@ -104,17 +160,17 @@ export const Actividades = () => {
         setFiltrosAplicados(filtros); // Al hacer esto, el useEffect se dispara automáticamente
     };
 
-const handleClearFiltros = () => {
-    const filtrosVacios = {
-        id: '', nombre: '', estado: '',
-        fecha_desde: '', fecha_hasta: '',
-        area_id: '', asignado_a: ''
+    const handleClearFiltros = () => {
+        const filtrosVacios = {
+            id: '', nombre: '', estado: '',
+            fecha_desde: '', fecha_hasta: '',
+            area_id: '', asignado_a: ''
+        };
+
+        setFiltros(filtrosVacios);         // Limpia el estado de los inputs
+        setFiltrosAplicados(filtrosVacios); // Dispara el useEffect de fetchActividades
+        localStorage.removeItem('actividades_filtros'); // Limpia la persistencia
     };
-    
-    setFiltros(filtrosVacios);         // Limpia el estado de los inputs
-    setFiltrosAplicados(filtrosVacios); // Dispara el useEffect de fetchActividades
-    localStorage.removeItem('actividades_filtros'); // Limpia la persistencia
-};
     return (
         <>
             <Navbar />
@@ -215,48 +271,87 @@ const handleClearFiltros = () => {
                     ) : (
                         <div className="main-content-view">
                             {vista === "tabla" && (
-                                <div className="tabla-container">
-                                    <table className="tabla-actividades">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Nombre</th>
-                                                <th>Estado</th>
-                                                <th>Asignado A</th>
-                                                <th>Minutos planeados</th>
-                                                <th>Minutos ejecutados</th>
-                                                <th>Area</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {actividades.map((act) => (
-                                                <tr key={act.id}>
-                                                    <td>{act.id}</td>
-                                                    <td>{act.nombre}</td>
-                                                    <td>
-                                                        <span
-                                                            className={`estado-badge estado-${act.estado}`}
-                                                        >
-                                                            {TEXTOS_ESTADOS[act.estado] || act.estado}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        {act.asignado_a?.nombre} {act.asignado_a?.apellido}
-                                                    </td>
-                                                    <td>{act.minutos_planeados}</td>
-                                                    <td>{act.minutos_ejecutados}</td>
-                                                    <td>{act.area?.nombre || act.area || "N/A"}</td>
-                                                    <td>
-                                                        <Link to={`/ver-actividad/${act.id}`}>
-                                                            <i className="fa-solid fa-eye"></i>
-                                                        </Link>
-                                                    </td>
+                                <div className="main-layout-container">
+
+                                    <div className="tabla-container">
+                                        <table className="tabla-actividades">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Nombre</th>
+                                                    <th>Estado</th>
+                                                    <th>Asignado A</th>
+                                                    <th>Minutos planeados</th>
+                                                    <th>Minutos ejecutados</th>
+                                                    <th>Area</th>
+                                                    <th>Acciones</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {actividades.map((act) => (
+                                                    <tr key={act.id}>
+                                                        <td>{act.id}</td>
+                                                        <td>{act.nombre}</td>
+                                                        <td>
+                                                            <span
+                                                                className={`estado-badge estado-${act.estado}`}
+                                                            >
+                                                                {TEXTOS_ESTADOS[act.estado] || act.estado}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {act.asignado_a?.nombre} {act.asignado_a?.apellido}
+                                                        </td>
+                                                        <td>{act.minutos_planeados}</td>
+                                                        <td>{act.minutos_ejecutados}</td>
+                                                        <td>{act.area?.nombre || act.area || "N/A"}</td>
+                                                        <td>
+                                                            <Link to={`/ver-actividad/${act.id}`}>
+                                                                <i className="fa-solid fa-eye"></i>
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+
+                                    <div className="main-indicadores">
+                                        <div className="indicadores">
+                                            <h3>Resumen del día</h3>
+                                            {resumenDia ? (
+                                                <div className="resumen-detalle">
+                                                    <p>⏱️ Tiempo trabajado <b>{tiempoTranscurrido}</b></p>
+                                                    <p>📅 Tiempo programado <b>{formatoTiempo(minutosProgramados)}</b></p>
+                                                    <p>📋 Tiempo ejecutado <b>{resumenDia.tiempo_actividades}</b></p>
+                                                    <p className={`resumen-diferencia ${resumenDia.diferencia_minutos > 0 ? 'text-danger' : 'text-success'}`}>
+                                                        Diferencia: <b>{resumenDia.diferencia_minutos} minutos</b>
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="cargando-resumen">Turno no iniciado</p>
+                                            )}
+                                        </div>
+                                        <div className="indicadores-2">
+                                            <h3>Próximas Programadas</h3>
+                                            <div className="lista-actividades-mini">
+                                                {actividadesProgramadas.length > 0 ? (
+                                                    actividadesProgramadas.map((act) => (
+                                                        <div key={act.id} className="actividad-item-mini">
+                                                            <span className="actividad-nombre">{act.nombre}</span>
+                                                            <span className="actividad-estado">{act.estado}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>No hay actividades programadas.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
+
                             )}
 
                             {vista === "tarjetas" && (
@@ -292,41 +387,42 @@ const handleClearFiltros = () => {
                                             </div>
                                         </div>
                                     ))}
+
                                 </div>
                             )}
 
                             {vista === "calendario" && (
                                 <CalendarioActividades actividades={actividadesMemorizadas} />
                             )}
-                        </div>
-                    )}
 
-                    {vista !== "calendario" && (
-                        <div className="pagination-wrapper">
-                            <nav className="modern-pagination">
-                                <button
-                                    className="btn-nav"
-                                    onClick={() =>
-                                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                                    }
-                                    disabled={currentPage === 1}
-                                >
-                                    ←
-                                </button>
-                                <div className="page-info">
-                                    PÁGINA {currentPage} DE {lastPage}
+                            {vista !== "calendario" && (
+                                <div className="pagination-wrapper">
+                                    <nav className="modern-pagination">
+                                        <button
+                                            className="btn-nav"
+                                            onClick={() =>
+                                                setCurrentPage((prev) => Math.max(prev - 1, 1))
+                                            }
+                                            disabled={currentPage === 1}
+                                        >
+                                            ←
+                                        </button>
+                                        <div className="page-info">
+                                            PÁGINA {currentPage} DE {lastPage}
+                                        </div>
+                                        <button
+                                            className="btn-nav"
+                                            onClick={() =>
+                                                setCurrentPage((prev) => Math.min(prev + 1, lastPage))
+                                            }
+                                            disabled={currentPage === lastPage}
+                                        >
+                                            →
+                                        </button>
+                                    </nav>
+
                                 </div>
-                                <button
-                                    className="btn-nav"
-                                    onClick={() =>
-                                        setCurrentPage((prev) => Math.min(prev + 1, lastPage))
-                                    }
-                                    disabled={currentPage === lastPage}
-                                >
-                                    →
-                                </button>
-                            </nav>
-
+                            )}
                         </div>
                     )}
                 </div>

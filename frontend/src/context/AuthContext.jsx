@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }) => {
 
             setUser(userData);
 
-            return response.data; 
+            return response.data;
 
         } catch {
             // MUY IMPORTANTE: Lanzamos el error hacia afuera
