@@ -280,6 +280,7 @@ class ActividadController extends Controller
                 'requiere_aprobacion' => 'nullable|boolean',
                 'notificar_asignacion' => 'nullable|boolean',
             ]);
+
             $inicioDatetime = Carbon::parse($request->fecha_inicio)->format('Y-m-d H:i:00');
             $finDatetime = Carbon::parse($request->fecha_finalizacion)->format('Y-m-d H:i:00');
 
@@ -291,7 +292,7 @@ class ActividadController extends Controller
                 ->first();
 
             $actividadConflictiva = Actividad::where('asignado_a', $request->asignado_a)
-                ->where('fecha_finalizacion', $finDatetime) // Comparamos solo la fecha de finalización
+                ->where('fecha_finalizacion', $finDatetime)
                 ->first();
 
             if ($actividadConflictiva) {
@@ -361,6 +362,7 @@ class ActividadController extends Controller
                 'minutos_ejecutados' => $request->minutos_ejecutados ?? 0,
                 'estado' => $estadoFinal,
                 'fecha_finalizacion' => $request->fecha_finalizacion,
+                'fecha_inicio' => now(),
                 'requiere_aprobacion' => $request->requiere_aprobacion ?? false,
                 'notificar_asignacion' => $request->notificar_asignacion ?? true,
                 'archivos' => $archivosArray,
@@ -811,3 +813,4 @@ class ActividadController extends Controller
     // }
 
 }
+

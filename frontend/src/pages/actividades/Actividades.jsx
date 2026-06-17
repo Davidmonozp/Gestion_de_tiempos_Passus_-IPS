@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./styles/Actividades.css";
 import { Navbar } from "../../components/Navbar";
 import { Sidebar } from "../../components/Sidebar";
@@ -9,18 +9,18 @@ import CalendarioActividades from "./CalendarioActividades";
 import { tienePermiso } from "../../utils/Permisos";
 import { useAuth } from '../../context/AuthContext';
 import { FiltrosActividades } from "../../components/FiltrosActividades";
+import { ResumenActividades } from "../../components/ResumenActividades";
 
 export const Actividades = () => {
-
-
-
-
 
     const [actividades, setActividades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
-    const [vista, setVista] = useState("calendario");
+    const [vista, setVista] = useState(() => {
+        return tienePermiso(["Administrador"]) ? "tabla" : "calendario";
+    });
+    const navigate = useNavigate();
     const [filtros, setFiltros] = useState(() => {
         const guardados = localStorage.getItem('actividades_filtros');
         return guardados ? JSON.parse(guardados) : {
@@ -33,8 +33,6 @@ export const Actividades = () => {
             asignado_a: ''
         };
     });
-
-
 
 
     const minutosProgramados = useMemo(() => {
@@ -81,7 +79,7 @@ export const Actividades = () => {
     const actividadesMemorizadas = useMemo(() => actividades, [actividades]);
 
     // 🟢 ESTADO PARA EL FILTRO: false = solo mías, true = todo el área
-    const [verTodoElArea, setVerTodoElArea] = useState(false);
+    const [verTodoElArea, setVerTodoElArea] = useState(true);
     const {
         tiempoTranscurrido, handleEntrada, handleSalida, jornadaActiva, horaInicio, obtenerResumenJornada
     } = useAuth();
@@ -153,6 +151,8 @@ export const Actividades = () => {
         // Stringify convierte el objeto en un string para que React pueda compararlo bien
     }, [currentPage, verTodoElArea, vista, JSON.stringify(filtrosAplicados)]);
 
+
+
     if (loading) return <p className="loading-text">Cargando actividades...</p>;
 
     const handleApply = () => {
@@ -171,6 +171,19 @@ export const Actividades = () => {
         setFiltrosAplicados(filtrosVacios); // Dispara el useEffect de fetchActividades
         localStorage.removeItem('actividades_filtros'); // Limpia la persistencia
     };
+
+    const formatearFecha = (fecha) => {
+        if (!fecha) return 'N/A'; // Manejo de valores vacíos
+        return new Date(fecha).toLocaleString('es-CO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+
     return (
         <>
             <Navbar />
@@ -179,7 +192,7 @@ export const Actividades = () => {
                 <div className="container-principal">
                     <div className="header-seccion">
                         <h1>
-                            {verTodoElArea ? "Actividades del Área" : "Mis Actividades"}
+                            {verTodoElArea ? "Todas las actividades" : "Mis Actividades"}
                         </h1>
                         {/* <div className='cronometro-actividades'>{tiempoTranscurrido}</div> */}
                         <div className='cronometro-actividades'>
@@ -243,20 +256,27 @@ export const Actividades = () => {
 
                         {/* 🟢 BOTÓN DE FILTRO RESPETANDO TU DISEÑO ORIGINAL */}
                         {tienePermiso(["JefeInmediato", "Administrador"]) && (
-                            <button
-                                onClick={() => {
-                                    setVerTodoElArea(!verTodoElArea);
-                                    setCurrentPage(1);
-                                }}
-                                className={`btn-toggle-area ${verTodoElArea ? "active" : ""}`}
-                            >
-                                <i
-                                    className={`fa-solid ${verTodoElArea ? "fa-user" : "fa-users"}`}
-                                ></i>
-                                {verTodoElArea
-                                    ? " Ver solo mis actividades"
-                                    : " Ver actividades del área"}
-                            </button>
+                            <div className="button-group-area">
+                                <button
+                                    onClick={() => {
+                                        setVerTodoElArea(true);
+                                        setCurrentPage(1);
+                                    }}
+                                    className={`btn-toggle-area ${verTodoElArea ? "active" : ""}`}
+                                >
+                                    <i className="fa-solid fa-users"></i> Todas las actividades
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setVerTodoElArea(false);
+                                        setCurrentPage(1);
+                                    }}
+                                    className={`btn-toggle-area ${!verTodoElArea ? "active" : ""}`}
+                                >
+                                    <i className="fa-solid fa-user"></i> Mis actividades
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -284,6 +304,9 @@ export const Actividades = () => {
                                                     <th>Minutos planeados</th>
                                                     <th>Minutos ejecutados</th>
                                                     <th>Area</th>
+                                                    <th>Fecha Registro</th>
+                                                    <th>Fecha de Inicio</th>
+                                                    <th>Fecha de Finalización</th>
                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
@@ -305,6 +328,9 @@ export const Actividades = () => {
                                                         <td>{act.minutos_planeados}</td>
                                                         <td>{act.minutos_ejecutados}</td>
                                                         <td>{act.area?.nombre || act.area || "N/A"}</td>
+                                                        <td>{formatearFecha(act.created_at)}</td>
+                                                        <td>{formatearFecha(act.fecha_inicio)}</td>
+                                                        <td>{formatearFecha(act.fecha_finalizacion)}</td>
                                                         <td>
                                                             <Link to={`/ver-actividad/${act.id}`}>
                                                                 <i className="fa-solid fa-eye"></i>
@@ -314,6 +340,11 @@ export const Actividades = () => {
                                                 ))}
                                             </tbody>
                                         </table>
+                                        {actividades.length > 0 ? (
+                                            <ResumenActividades actividades={actividades} />
+                                        ) : (
+                                            <p>Cargando totales...</p>
+                                        )}
                                     </div>
 
 
@@ -322,6 +353,9 @@ export const Actividades = () => {
                                             <h3>Resumen del día</h3>
                                             {resumenDia ? (
                                                 <div className="resumen-detalle">
+                                                    {horaInicio && (
+                                                        <p>🕒 Inicio del turno: <b>{horaInicio}</b></p>
+                                                    )}
                                                     <p>⏱️ Tiempo trabajado <b>{tiempoTranscurrido}</b></p>
                                                     <p>📅 Tiempo programado <b>{formatoTiempo(minutosProgramados)}</b></p>
                                                     <p>📋 Tiempo ejecutado <b>{resumenDia.tiempo_actividades}</b></p>
@@ -338,13 +372,20 @@ export const Actividades = () => {
                                             <div className="lista-actividades-mini">
                                                 {actividadesProgramadas.length > 0 ? (
                                                     actividadesProgramadas.map((act) => (
-                                                        <div key={act.id} className="actividad-item-mini">
+                                                        <div
+                                                            key={act.id}
+                                                            className="actividad-item-mini"
+                                                            onClick={() => navigate(`/ver-actividad/${act.id}`)}
+                                                            style={{ cursor: 'pointer' }}
+                                                        >
                                                             <span className="actividad-nombre">{act.nombre}</span>
                                                             <span className="actividad-estado">{act.estado}</span>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>No hay actividades programadas.</p>
+                                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                                        No hay actividades programadas.
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
@@ -392,7 +433,7 @@ export const Actividades = () => {
                             )}
 
                             {vista === "calendario" && (
-                                <CalendarioActividades actividades={actividadesMemorizadas} />
+                                <CalendarioActividades actividades={actividadesMemorizadas} filtros={filtrosAplicados} />
                             )}
 
                             {vista !== "calendario" && (

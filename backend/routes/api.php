@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Mail\NuevaActividadAsignada;
 use App\Models\Actividad;
 use App\Models\SolicitudActividad;
+use App\Services\JornadaService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -115,3 +116,5 @@ Route::middleware('auth:api')->group(function () {
     // Ruta planeador actividades
     Route::post('/crear-actividades-recurrentes', [ActividadController::class, 'storeRecurrentes']);
 });
+
+

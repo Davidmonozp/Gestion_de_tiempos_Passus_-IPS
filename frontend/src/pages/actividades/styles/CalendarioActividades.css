@@ -102,12 +102,13 @@
     gap: 10px;
     /* Espacio entre filas */
     margin-top: 15px;
-    max-height: 115px;
+    /* max-height: 115px; */
 }
 
 .resumen-detalle p {
     font-size: 13px;
     font-weight: 500;
+    margin: 4px 0px;
 }
 
 .resumen-detalle b {

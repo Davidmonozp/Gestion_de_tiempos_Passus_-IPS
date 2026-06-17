@@ -1,0 +1,58 @@
+.resumen-totales-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    padding: 1.5rem;
+    margin-top: 20px;
+    transition: transform 0.2s ease;
+    gap: 10px;
+}
+
+.resumen-totales-footer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.resumen-totales-footer div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    color: #374151;
+    font-size: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 0px 3px #00933f, 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #00934015;
+    padding: 10px;
+}
+
+.resumen-totales-footer div:hover {
+    background-color: #00934036;
+}
+
+.resumen-totales-footer strong {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #06547d;
+}
+
+/* Estilo para los números */
+.resumen-totales-footer span {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.diferencia-box {
+    border-left: 2px solid #f3f4f6;
+    padding-left: 20px;
+}
+
+.diferencia-box.exceso span {
+    color: #00933f; /* Rojo si el ejecutado superó al planeado */
+}
+
+.diferencia-box.ahorro span {
+    color: #e71a1a; /* Verde si hubo "ahorro" de tiempo */
+}

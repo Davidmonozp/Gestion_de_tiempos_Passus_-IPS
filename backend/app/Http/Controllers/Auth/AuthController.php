@@ -79,7 +79,7 @@ class AuthController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Tu cuenta se encuentra inactiva. Por favor, contacta al administrador.'
-                ], 403); 
+                ], 403);
             }
 
             // 3. Respuesta de éxito (Fuera de los catch)

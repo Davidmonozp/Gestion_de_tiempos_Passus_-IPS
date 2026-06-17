@@ -78,9 +78,11 @@ export const FiltrosActividades = ({ filtros, setFiltros, onApply, onClear }) =>
                     <select name="estado" onChange={handleChange} value={filtros.estado || ''}>
                         <option value="">Todos los estados</option>
                         <option value="Programada">Programada</option>
+                        <option value="Ejecución">En Ejecución</option>
                         <option value="Finalizada">Finalizada</option>
                         <option value="Por_corregir">Por corregir</option>
                         <option value="Aplazada">Aplazada</option>
+                        <option value="Cancelada">Cancelada</option>
                     </select>
                 </div>
 
@@ -119,10 +121,10 @@ export const FiltrosActividades = ({ filtros, setFiltros, onApply, onClear }) =>
                     </>
                 )}
                 <div className="button-actions-container">
-                    <button onClick={handleClear} className="btn-limpiar">
+                    <button type="button" onClick={handleClear} className="btn-limpiar">
                         <i className="fa-solid fa-eraser"></i> Limpiar Filtros
                     </button>
-                    <button onClick={onApply} className="btn-aplicar">
+                    <button type="button" onClick={onApply} className="btn-aplicar">
                         <i className="fa-solid fa-filter"></i> Aplicar Filtros
                     </button>
                 </div>
